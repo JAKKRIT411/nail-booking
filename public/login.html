@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:white;
+  padding:40px;
+  border-radius:15px;
+  width:320px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+button{
+  width:100%;
+  padding:10px;
+  background:#6366f1;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+a{
+  display:block;
+  text-align:center;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h2 style="text-align:center;">เข้าสู่ระบบ</h2>
+  <form action="/login" method="POST">
+    <input name="username" placeholder="Username" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+  </form>
+  <a href="/register.html">สมัครสมาชิก</a>
+</div>
+
+</body>
+</html>

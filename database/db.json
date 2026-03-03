@@ -1,0 +1,148 @@
+{
+  "users": [
+    {
+      "id": 1772554193057,
+      "username": "admin",
+      "email": "admin@gmail.com",
+      "phone": "0812345678",
+      "password": "$2b$10$tmJEqpLcdjToWskuCteMyOt/a/PQNf1O3kVDMJzgsw6ssw9KJwTKa",
+      "role": "admin",
+      "loginAttempts": 0,
+      "lockUntil": null
+    },
+    {
+      "id": 1772555740384,
+      "username": "JA1",
+      "email": "jakkritchaichan94@gmail.com",
+      "phone": "0842632210",
+      "password": "$2b$10$4g/BMFZcOIV/3q0mV9bWJeugS1jXEBud8DdAX/O8i/r0/I/RFUJyG",
+      "role": "user",
+      "loginAttempts": 0,
+      "lockUntil": null
+    },
+    {
+      "id": 1772570778214,
+      "username": "JA2",
+      "email": "jakkritchaichan936@gmail.com",
+      "phone": "0842632211",
+      "password": "$2b$10$mCBZXObNeqJFkLDxc5zLH.EuHuj0dNWFymEd/jhmSi43gzx2sXyaC",
+      "role": "user",
+      "loginAttempts": 0,
+      "lockUntil": null
+    },
+    {
+      "id": 1772571301184,
+      "username": "JA3",
+      "email": "0842632210chel@gmail.com",
+      "phone": "0842632222",
+      "password": "$2b$10$r4rF/yUAvMImzWfh5rm4Iugljkz1E6pjrRfKQpA6u9Q.8GC9uJlCS",
+      "role": "user",
+      "loginAttempts": 0,
+      "lockUntil": null
+    },
+    {
+      "id": 1772572283688,
+      "username": "JAKKRIT",
+      "email": "jakkritchaichan9admin@gmail.com",
+      "phone": "0842632213",
+      "password": "$2b$10$FBLq2JrJZqiuXz8rK2PB/.G/jlwEiYH8G9mHjfv8oNwIp.GzmfuqC",
+      "role": "user",
+      "loginAttempts": 0,
+      "lockUntil": null
+    },
+    {
+      "id": 1772572627808,
+      "username": "JAKKRITT",
+      "email": "jakkritchaichan9adminT@gmail.com",
+      "phone": "0842632299",
+      "password": "$2b$10$2SXd2.dhAsDJ8jHBofB4RuU34X.jU25Y2vouaeFuYEKoOczrnlMCq",
+      "role": "user",
+      "loginAttempts": 0,
+      "lockUntil": null
+    }
+  ],
+  "services": [
+    {
+      "id": 1772565449369,
+      "name": "1",
+      "price": 100
+    },
+    {
+      "id": 1772567158719,
+      "name": "4",
+      "price": 4
+    }
+  ],
+  "slots": [
+    {
+      "id": 1772567970922,
+      "date": "2026-03-03",
+      "time": "10:10",
+      "status": "booked"
+    },
+    {
+      "id": 1772570625770,
+      "date": "2026-03-04",
+      "time": "10:10",
+      "status": "booked"
+    },
+    {
+      "id": 1772572372003,
+      "date": "2026-03-03",
+      "time": "19:00",
+      "status": "booked"
+    },
+    {
+      "id": 1772572533164,
+      "date": "2026-03-04",
+      "time": "12:02",
+      "status": "booked"
+    }
+  ],
+  "bookings": [
+    {
+      "id": 1772567990649,
+      "user": "JA1",
+      "slotId": 1772567970922,
+      "serviceId": 1772565449369,
+      "slip": "/uploads/1772567990628.jpg",
+      "status": "approved",
+      "reason": null,
+      "completed": true,
+      "completedAt": "2026-03-03T20:00:11.435Z"
+    },
+    {
+      "id": 1772570708925,
+      "user": "JA1",
+      "slotId": 1772570625770,
+      "serviceId": 1772565449369,
+      "slip": "/uploads/1772570708909.jpg",
+      "status": "approved",
+      "reason": null,
+      "completed": true,
+      "completedAt": "2026-03-03T20:45:19.658Z"
+    },
+    {
+      "id": 1772572547296,
+      "user": "JAKKRIT",
+      "slotId": 1772572372003,
+      "serviceId": 1772565449369,
+      "slip": "/uploads/1772572547276.jpg",
+      "status": "approved",
+      "reason": null,
+      "completed": true,
+      "completedAt": "2026-03-03T21:16:30.499Z"
+    },
+    {
+      "id": 1772574982254,
+      "user": "JA1",
+      "slotId": 1772572533164,
+      "serviceId": 1772565449369,
+      "slip": "/uploads/1772574982242.jpg",
+      "status": "approved",
+      "reason": null,
+      "completed": true,
+      "completedAt": "2026-03-03T21:56:41.754Z"
+    }
+  ]
+}

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Register</title>
+
+<style>
+body{
+  font-family:Arial;
+  background:linear-gradient(135deg,#ec4899,#f43f5e);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.card{
+  background:white;
+  padding:40px;
+  border-radius:15px;
+  width:350px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+input{
+  width:100%;
+  padding:10px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #ddd;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  background:#ec4899;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+button:disabled{
+  background:#ccc;
+  cursor:not-allowed;
+}
+
+.checklist{
+  font-size:13px;
+  margin-bottom:10px;
+}
+
+.valid{ color:green; }
+.invalid{ color:red; }
+
+a{
+  display:block;
+  text-align:center;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2 style="text-align:center;">สมัครสมาชิก</h2>
+
+  <form id="registerForm" action="/register" method="POST">
+
+    <input name="username" placeholder="Username" required>
+
+    <input name="email" type="email" placeholder="Gmail" required>
+
+    <input name="phone" placeholder="เบอร์โทร (0xxxxxxxxx)" required>
+
+    <input name="password" id="password" type="password"
+           placeholder="Password (อย่างน้อย 8 ตัว)" required>
+
+    <div class="checklist">
+      <div id="length" class="invalid">❌ อย่างน้อย 8 ตัว</div>
+      <div id="uppercase" class="invalid">❌ มีตัวพิมพ์ใหญ่ (A-Z)</div>
+      <div id="number" class="invalid">❌ มีตัวเลข (0-9)</div>
+    </div>
+
+    <button id="submitBtn" type="submit" disabled>Register</button>
+
+  </form>
+
+  <a href="/login.html">กลับไป Login</a>
+</div>
+
+<script>
+
+const passwordInput = document.getElementById("password");
+const submitBtn = document.getElementById("submitBtn");
+
+passwordInput.addEventListener("input", function(){
+
+  const value = passwordInput.value;
+
+  const lengthValid = value.length >= 8;
+  const uppercaseValid = /[A-Z]/.test(value);
+  const numberValid = /\d/.test(value);
+
+  updateStatus("length", lengthValid);
+  updateStatus("uppercase", uppercaseValid);
+  updateStatus("number", numberValid);
+
+  if(lengthValid && uppercaseValid && numberValid){
+    submitBtn.disabled = false;
+  }else{
+    submitBtn.disabled = true;
+  }
+});
+
+function updateStatus(id, isValid){
+  const el = document.getElementById(id);
+
+  if(isValid){
+    el.classList.remove("invalid");
+    el.classList.add("valid");
+    el.innerHTML = el.innerHTML.replace("❌","✅");
+  }else{
+    el.classList.remove("valid");
+    el.classList.add("invalid");
+    el.innerHTML = el.innerHTML.replace("✅","❌");
+  }
+}
+
+</script>
+
+</body>
+</html>

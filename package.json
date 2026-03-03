@@ -1,0 +1,21 @@
+{
+  "name": "nail-booking",
+  "version": "1.0.0",
+  "description": "Nail Booking System",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.22.1",
+    "express-session": "^1.19.0",
+    "lowdb": "^6.1.1",
+    "mongodb": "^7.1.0",
+    "mongoose": "^9.2.3",
+    "multer": "^2.1.0",
+    "nodemailer": "^8.0.1"
+  }
+}

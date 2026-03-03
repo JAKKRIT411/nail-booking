@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Nail Booking</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f9f3ff;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: linear-gradient(90deg, #d946ef, #a855f7);
+  color: white;
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  margin-bottom: 20px;
+}
+
+button {
+  background: #a855f7;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background: #9333ea;
+}
+
+select, input[type="file"] {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.booking-card {
+  border-left: 5px solid #a855f7;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #faf5ff;
+  border-radius: 8px;
+}
+
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+}
+
+.pending { background: orange; }
+.approved { background: green; }
+.rejected { background: red; }
+
+img {
+  margin-top: 10px;
+  border-radius: 8px;
+  max-width: 150px;
+}
+
+.auth a {
+  color: white;
+  margin-left: 10px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.badge {
+  padding:4px 10px;
+  border-radius:12px;
+  color:white;
+  font-size:12px;
+}
+
+.badge.pending {
+  background:orange;
+}
+
+.badge.approved {
+  background:green;
+}
+
+.badge.rejected {
+  background:red;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>💅 Nail Booking</h1>
+  <div class="auth" id="authSection"></div>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>📅 จองคิว</h2>
+
+    <form action="/book" method="POST" enctype="multipart/form-data">
+      <label>เลือกบริการ</label>
+      <select name="serviceId" id="serviceSelect" required></select>
+
+      <label>เลือกวันและเวลา</label>
+      <select name="slotId" id="slotSelect" required></select>
+
+      <label>อัปโหลดสลิป</label>
+      <input type="file" name="slip" required>
+
+      <button type="submit">จองเลย</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>📌 คิวของฉัน</h2>
+    <div id="myBookings"></div>
+  </div>
+
+</div>
+<script>
+async function loadServices() {
+  const res = await fetch("/api/services");
+  const services = await res.json();
+
+  const select = document.getElementById("serviceSelect");
+  select.innerHTML = "";
+
+  services.forEach(s => {
+    select.innerHTML += `
+      <option value="${s.id}">
+        ${s.name} - ${s.price} บาท
+      </option>`;
+  });
+}
+
+async function loadSlots() {
+  const res = await fetch("/api/slots");
+  const slots = await res.json();
+
+  const select = document.getElementById("slotSelect");
+  select.innerHTML = "";
+
+  slots.forEach(s => {
+    select.innerHTML += `
+      <option value="${s.id}">
+        ${s.date} ${s.time}
+      </option>`;
+  });
+}
+
+async function loadMyBookings() {
+  const res = await fetch("/api/my-bookings");
+  if (!res.ok) return;
+
+  const bookings = await res.json();
+  const container = document.getElementById("myBookings");
+  container.innerHTML = "";
+
+  if (bookings.length === 0) {
+    container.innerHTML = "ยังไม่มีการจอง";
+    return;
+  }
+
+  bookings.forEach(b => {
+
+    // 🔔 แจ้งเตือนถ้าถูก reject
+    if (b.status === "rejected" && b.reason) {
+      alert(`❌ การจองวันที่ ${b.date} เวลา ${b.time}
+ถูกยกเลิก
+
+เหตุผล:
+${b.reason}`);
+    }
+
+    container.innerHTML += `
+      <div class="booking-card">
+        <p><b>📅 ${b.date}</b> เวลา ${b.time}</p>
+        <p>💅 ${b.serviceName} (${b.price} บาท)</p>
+
+        <span class="badge ${b.status}">
+          ${b.status}
+        </span>
+
+        ${
+          b.status === "rejected" && b.reason
+            ? `<p style="color:red;font-weight:bold;">
+                 ❗ เหตุผล: ${b.reason}
+               </p>`
+            : ""
+        }
+
+        ${b.slip ? `<br><img src="${b.slip}" style="max-width:150px;">` : ""}
+
+        ${
+          b.status === "rejected"
+            ? `<br><br>
+               <button onclick="deleteBooking(${b.id})"
+                       style="background:red;color:white;border:none;padding:6px 12px;border-radius:6px;">
+                 ลบรายการนี้
+               </button>`
+            : ""
+        }
+      </div>
+    `;
+  });
+}
+
+// ✅ ต้องอยู่นอก loadMyBookings
+async function deleteBooking(id){
+  if(!confirm("ยืนยันการลบรายการนี้?")) return;
+
+  const res = await fetch("/api/delete-my-booking", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id })
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    loadMyBookings();
+  } else {
+    alert(data.error || "เกิดข้อผิดพลาด");
+  }
+}
+
+async function checkLogin() {
+  const res = await fetch("/api/me");
+
+  if (!res.ok) {
+    document.getElementById("authSection").innerHTML =
+      `<a href="/login.html">🔑 Login</a>`;
+    return;
+  }
+
+  const data = await res.json();
+
+  document.getElementById("authSection").innerHTML = `
+   👤 ${data.user.username}
+   <a href="/logout">🚪 Logout</a>
+`;
+
+  loadMyBookings();
+}
+
+loadServices();
+loadSlots();
+checkLogin();
+</script>
+
+</body>
+</html>
