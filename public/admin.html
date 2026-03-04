@@ -203,11 +203,25 @@ async function addSlot(){
   const time=document.getElementById("slotTime").value;
   if(!date||!time) return alert("กรอกข้อมูลให้ครบ");
 
-  await fetch("/admin/add-slot",{
+  const res = await fetch("/admin/add-slot",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
     body:JSON.stringify({date,time})
   });
+
+  if(!res.ok){
+    alert("Session หมดอายุ กรุณา login ใหม่");
+    window.location.href="/login.html";
+    return;
+  }
+
+  const data = await res.json();
+  if(data.error){
+    alert(data.error);
+  }else{
+    alert("เพิ่ม slot สำเร็จ");
+  }
+
   loadCalendar();
 }
 
@@ -323,7 +337,8 @@ async function loadServices(){
 }
 
 async function addService(){
-  await fetch("/admin/add-service",{
+
+  const res = await fetch("/admin/add-service",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
     body:JSON.stringify({
@@ -331,6 +346,21 @@ async function addService(){
       price:document.getElementById("newPrice").value
     })
   });
+
+  if(!res.ok){
+    alert("Session หมดอายุ กรุณา login ใหม่");
+    window.location.href="/login.html";
+    return;
+  }
+
+  const data = await res.json();
+
+  if(data.error){
+    alert(data.error);
+  }else{
+    alert("เพิ่ม service สำเร็จ");
+  }
+
   loadServices();
 }
 
