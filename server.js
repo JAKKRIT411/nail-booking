@@ -50,8 +50,8 @@ app.use(
     }),
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: "lax",
+      secure: true,          // Render เป็น https อยู่แล้ว
+      sameSite: "none",      // 🔥 เปลี่ยนเป็น none
       maxAge: 24 * 60 * 60 * 1000
     }
   })
