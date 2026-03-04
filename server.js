@@ -1,5 +1,6 @@
 import express from "express";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 import { Low } from "lowdb";
 import { JSONFile } from "lowdb/node";
 import bcrypt from "bcrypt";
@@ -28,12 +29,16 @@ app.use(
     secret: "super-secret-production-key",
     resave: false,
     saveUninitialized: false,
- cookie: {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  maxAge: 24 * 60 * 60 * 1000
-}
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions"
+    }),
+    cookie: {
+      httpOnly: true,
+      secure: true, // บน Render เป็น https อยู่แล้ว
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000
+    }
   })
 );
 
