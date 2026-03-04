@@ -256,7 +256,9 @@ async function deleteBooking(id){
 }
 
 async function checkLogin() {
-  const res = await fetch("/api/me");
+  const res = await fetch("/api/me", {
+    credentials: "include"
+  });
 
   if (!res.ok) {
     document.getElementById("authSection").innerHTML =
@@ -267,9 +269,9 @@ async function checkLogin() {
   const data = await res.json();
 
   document.getElementById("authSection").innerHTML = `
-   👤 ${data.user.username}
-   <a href="/logout">🚪 Logout</a>
-`;
+    👤 ${data.user.username}
+    <a href="/logout">🚪 Logout</a>
+  `;
 
   loadMyBookings();
 }
