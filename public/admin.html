@@ -3,28 +3,112 @@
 <head>
 <meta charset="UTF-8">
 <title>Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-/* ===== ของเดิมทั้งหมด ===== */
-body { margin:0; font-family:Arial; display:flex; background:#f3f4f6; }
-.sidebar { width:220px; background:#111827; color:white; min-height:100vh; padding:20px 10px; }
-.sidebar h2 { text-align:center; }
-.menu-item { padding:10px; border-radius:6px; cursor:pointer; margin-bottom:5px; }
-.menu-item:hover { background:#1f2937; }
-.main { flex:1; padding:20px; }
-header { background:#111827; color:white; padding:10px; display:flex; justify-content:space-between; border-radius:8px; margin-bottom:20px; }
+body {
+  margin:0;
+  font-family:Segoe UI, Arial;
+  display:flex;
+  background:#f1f5f9;
+}
+
+.sidebar {
+  width:230px;
+  background:linear-gradient(180deg,#111827,#1f2937);
+  color:white;
+  min-height:100vh;
+  padding:20px 10px;
+}
+
+.sidebar h2 {
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.menu-item {
+  padding:10px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:8px;
+  transition:0.2s;
+}
+
+.menu-item:hover {
+  background:#374151;
+}
+
+.main {
+  flex:1;
+  padding:20px;
+}
+
+header {
+  background:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  border-radius:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom:20px;
+}
+
 .section { display:none; }
 .active { display:block; }
-.card { background:white; padding:10px; border-radius:10px; margin-bottom:10px; }
-.calendar-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap:10px; }
-.slot { background:#f9fafb; padding:6px; border-radius:6px; font-size:12px; margin-bottom:5px; }
-.badge { padding:2px 6px; border-radius:12px; font-size:10px; color:white; }
-.green { background:green; }
-.orange { background:orange; }
-.gray { background:gray; }
-button { padding:4px 8px; cursor:pointer; }
-input { padding:5px; margin:3px; }
+
+.card {
+  background:white;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+.calendar-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+  gap:15px;
+}
+
+.slot {
+  background:#f9fafb;
+  padding:8px;
+  border-radius:8px;
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.badge {
+  padding:4px 8px;
+  border-radius:12px;
+  font-size:11px;
+  color:white;
+}
+
+.green { background:#16a34a; }
+.orange { background:#f59e0b; }
+.gray { background:#6b7280; }
+
+button {
+  padding:6px 10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  background:#111827;
+  color:white;
+  font-size:12px;
+}
+
+button:hover { opacity:0.85; }
+
+input {
+  padding:6px;
+  margin:4px;
+  border-radius:6px;
+  border:1px solid #ddd;
+}
+
 @media(max-width:768px){
   body { flex-direction:column; }
   .sidebar { width:100%; display:flex; overflow:auto; }
@@ -46,44 +130,43 @@ input { padding:5px; margin:3px; }
 <div class="main">
 
 <header>
-  <div>Admin Panel</div>
+  <div><strong>Admin Panel</strong></div>
   <div>
     👤 <span id="adminName"></span>
     <button onclick="logout()">Logout</button>
   </div>
 </header>
 
+<!-- Dashboard -->
 <div id="dashboard" class="section active">
-  <h2>📊 Revenue Overview</h2>
-  <canvas id="revenueChart"></canvas>
+  <div class="card">
+    <h3>📊 Revenue Overview</h3>
+    <canvas id="revenueChart"></canvas>
+  </div>
 </div>
 
+<!-- Calendar -->
 <div id="calendar" class="section">
-  <h2>📆 Calendar (7 วัน)</h2>
-
   <div class="card">
     <input type="date" id="slotDate">
     <input type="time" id="slotTime">
     <button onclick="addSlot()">Add Slot</button>
   </div>
-
   <div class="calendar-grid" id="calendarGrid"></div>
 </div>
 
+<!-- Bookings -->
 <div id="bookings" class="section">
-  <h2>📋 Bookings</h2>
   <div id="bookingList"></div>
 </div>
 
+<!-- Services -->
 <div id="services" class="section">
-  <h2>💅 Services</h2>
-
   <div class="card">
     <input id="newName" placeholder="Name">
     <input id="newPrice" type="number" placeholder="Price">
     <button onclick="addService()">Add</button>
   </div>
-
   <div id="serviceList"></div>
 </div>
 
@@ -91,34 +174,16 @@ input { padding:5px; margin:3px; }
 
 <script>
 
-/* ================= NEW COMPLETE FUNCTION ================= */
-async function completeBooking(id){
-  const res = await fetch("/admin/complete-booking",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({ id })
-  });
-
-  const data = await res.json();
-
-  if(data.success){
-    alert("บันทึกว่างานเสร็จแล้ว");
-    loadBookings();
-  }else{
-    alert(data.error);
-  }
-}
-
 /* ================= AUTH ================= */
 async function checkAuth(){
-  const res = await fetch("/api/me");
+  const res = await fetch("/api/me",{ credentials:"include" });
   if(!res.ok){ window.location.href="/login.html"; return; }
   const data = await res.json();
-  if(!data.user || data.user.role !== "admin"){
+  if(!data.user || data.user.role!=="admin"){
     window.location.href="/login.html";
     return;
   }
-  document.getElementById("adminName").innerText = data.user.username;
+  document.getElementById("adminName").innerText=data.user.username;
 }
 function logout(){ window.location.href="/logout"; }
 
@@ -130,7 +195,7 @@ function showSection(id){
 
 /* ================= DASHBOARD ================= */
 async function loadRevenue(){
-  const res = await fetch("/admin/revenue");
+  const res = await fetch("/admin/revenue",{ credentials:"include" });
   const data = await res.json();
   new Chart(document.getElementById("revenueChart"),{
     type:"bar",
@@ -143,47 +208,33 @@ async function loadRevenue(){
 
 /* ================= CALENDAR ================= */
 async function loadCalendar(){
-
-  const slotRes = await fetch("/admin/all-slots");
+  const slotRes = await fetch("/admin/all-slots",{ credentials:"include" });
   const slots = await slotRes.json();
-
-  // 🔥 โหลด bookings ด้วย
-  const bookingRes = await fetch("/admin/bookings");
+  const bookingRes = await fetch("/admin/bookings",{ credentials:"include" });
   const bookings = await bookingRes.json();
 
-  const grid = document.getElementById("calendarGrid");
+  const grid=document.getElementById("calendarGrid");
   grid.innerHTML="";
-  const today = new Date();
+  const today=new Date();
 
   for(let i=0;i<7;i++){
-
-    const d = new Date();
+    const d=new Date();
     d.setDate(today.getDate()+i);
-    const date = d.toISOString().split("T")[0];
+    const date=d.toISOString().split("T")[0];
 
-    const dayDiv = document.createElement("div");
-    dayDiv.className="card";
-    dayDiv.innerHTML=`<strong>${date}</strong><hr>`;
+    const day=document.createElement("div");
+    day.className="card";
+    day.innerHTML=`<strong>${date}</strong><hr>`;
 
     slots.filter(s=>s.date===date).forEach(s=>{
-
-      let badge = `<span class="badge gray">available</span>`;
-
+      let badge=`<span class="badge gray">available</span>`;
       if(s.status==="booked"){
-
-        // 🔥 หา booking ของ slot นี้
-        const booking = bookings.find(
-          b => b.date === s.date && b.time === s.time
-        );
-
-        if(booking && booking.completed){
-          badge=`<span class="badge green">เสร็จสิ้น</span>`;
-        }else{
-          badge=`<span class="badge orange">booked</span>`;
-        }
+        const booking=bookings.find(b=>b.date===s.date && b.time===s.time);
+        badge=booking && booking.completed
+          ? `<span class="badge green">เสร็จสิ้น</span>`
+          : `<span class="badge orange">booked</span>`;
       }
-
-      dayDiv.innerHTML += `
+      day.innerHTML+=`
         <div class="slot">
           ⏰ ${s.time}<br>
           ${badge}<br>
@@ -194,34 +245,24 @@ async function loadCalendar(){
       `;
     });
 
-    grid.appendChild(dayDiv);
+    grid.appendChild(day);
   }
 }
 
 async function addSlot(){
-  const date=document.getElementById("slotDate").value;
-  const time=document.getElementById("slotTime").value;
+  const date=slotDate.value;
+  const time=slotTime.value;
   if(!date||!time) return alert("กรอกข้อมูลให้ครบ");
 
-  const res = await fetch("/admin/add-slot",{
+  const res=await fetch("/admin/add-slot",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
+    credentials:"include",
     body:JSON.stringify({date,time})
   });
 
-  if(!res.ok){
-    alert("Session หมดอายุ กรุณา login ใหม่");
-    window.location.href="/login.html";
-    return;
-  }
-
-  const data = await res.json();
-  if(data.error){
-    alert(data.error);
-  }else{
-    alert("เพิ่ม slot สำเร็จ");
-  }
-
+  const data=await res.json();
+  if(data.error) alert(data.error);
   loadCalendar();
 }
 
@@ -229,6 +270,7 @@ async function deleteSlot(id){
   await fetch("/admin/delete-slot",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
+    credentials:"include",
     body:JSON.stringify({id})
   });
   loadCalendar();
@@ -236,100 +278,73 @@ async function deleteSlot(id){
 
 /* ================= BOOKINGS ================= */
 async function loadBookings(){
-  const res = await fetch("/admin/bookings");
-  const data = await res.json();
+  const res=await fetch("/admin/bookings",{ credentials:"include" });
+  const data=await res.json();
   const div=document.getElementById("bookingList");
   div.innerHTML="";
-
   data.forEach(b=>{
-
-    let badge="orange";
-    if(b.status==="approved") badge="green";
-    if(b.status==="rejected") badge="gray";
-
     div.innerHTML+=`
       <div class="card">
-        👤 ${b.user}<br>
-        📞 ${b.phone}<br>
-        📧 ${b.email}<br>
-        📅 ${b.date} ⏰ ${b.time}<br>
+        👤 ${b.user} | 📅 ${b.date} ⏰ ${b.time}<br>
         💅 ${b.service} (${b.price} บาท)<br>
-        ${b.slip ? `<img src="${b.slip}" width="120">` : ""}
-        <br>
-        <span class="badge ${badge}">${b.status}</span>
-        ${b.reason ? `<br><small style="color:red">${b.reason}</small>`:""}
-        <br><br>
-
-        ${
-          b.status==="pending" ? `
-            <button onclick="approve(${b.id})">Approve</button>
-            <button onclick="rejectBooking(${b.id})">Reject</button>
-          ` : ""
-        }
-
-        ${
-          b.status==="approved" ? `
-            <button onclick="completeBooking(${b.id})">✔ ทำเสร็จแล้ว</button>
-          ` : ""
-        }
-
-        ${
-          b.status==="rejected" ? `
-            <button onclick="deleteBooking(${b.id})">Delete</button>
-          ` : ""
-        }
-
+        <span class="badge ${b.status==="approved"?"green":b.status==="rejected"?"gray":"orange"}">
+          ${b.status}
+        </span><br><br>
+        ${b.status==="pending"?
+          `<button onclick="approve(${b.id})">Approve</button>
+           <button onclick="rejectBooking(${b.id})">Reject</button>`:""}
+        ${b.status==="approved"?
+          `<button onclick="completeBooking(${b.id})">✔ เสร็จแล้ว</button>`:""}
       </div>
     `;
   });
 }
 
-/* ===== approve / reject / delete เดิม ===== */
 async function approve(id){
   await fetch("/admin/update-booking",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({ id, status:"approved" })
+    credentials:"include",
+    body:JSON.stringify({id,status:"approved"})
   });
   loadBookings();
   loadCalendar();
 }
 
 async function rejectBooking(id){
-  const reason = prompt("กรอกเหตุผลการปฏิเสธ");
+  const reason=prompt("เหตุผลการปฏิเสธ");
   if(!reason) return;
   await fetch("/admin/update-booking",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({ id, status:"rejected", reason })
+    credentials:"include",
+    body:JSON.stringify({id,status:"rejected",reason})
   });
   loadBookings();
   loadCalendar();
 }
 
-async function deleteBooking(id){
-  await fetch("/admin/delete-booking",{
+async function completeBooking(id){
+  await fetch("/admin/complete-booking",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({ id })
+    credentials:"include",
+    body:JSON.stringify({id})
   });
   loadBookings();
+  loadCalendar();
 }
 
 /* ================= SERVICES ================= */
-/* ของเดิมทั้งหมด ไม่เปลี่ยน */
-
 async function loadServices(){
-  const res=await fetch("/api/services");
+  const res=await fetch("/api/services",{ credentials:"include" });
   const data=await res.json();
   const div=document.getElementById("serviceList");
   div.innerHTML="";
   data.forEach(s=>{
     div.innerHTML+=`
       <div class="card">
-        <input value="${s.name}" id="sn${s.id}">
-        <input value="${s.price}" id="sp${s.id}" type="number">
-        <button onclick="updateService(${s.id})">Save</button>
+        ${s.name} - ${s.price} บาท
         <button onclick="deleteService(${s.id})">Delete</button>
       </div>
     `;
@@ -337,41 +352,13 @@ async function loadServices(){
 }
 
 async function addService(){
-
-  const res = await fetch("/admin/add-service",{
+  await fetch("/admin/add-service",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
+    credentials:"include",
     body:JSON.stringify({
-      name:document.getElementById("newName").value,
-      price:document.getElementById("newPrice").value
-    })
-  });
-
-  if(!res.ok){
-    alert("Session หมดอายุ กรุณา login ใหม่");
-    window.location.href="/login.html";
-    return;
-  }
-
-  const data = await res.json();
-
-  if(data.error){
-    alert(data.error);
-  }else{
-    alert("เพิ่ม service สำเร็จ");
-  }
-
-  loadServices();
-}
-
-async function updateService(id){
-  await fetch("/admin/update-service",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({
-      id,
-      name:document.getElementById("sn"+id).value,
-      price:document.getElementById("sp"+id).value
+      name:newName.value,
+      price:newPrice.value
     })
   });
   loadServices();
@@ -381,6 +368,7 @@ async function deleteService(id){
   await fetch("/admin/delete-service",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
+    credentials:"include",
     body:JSON.stringify({id})
   });
   loadServices();
