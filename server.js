@@ -278,24 +278,31 @@ app.get("/api/me", (req, res) => {
 });
 /* ================= ADMIN ================= */
 
-app.get("/admin/bookings", requireAdmin, (req, res) => {
-  const data = db.data.bookings.map(b => {
+app.get("/admin/bookings", requireAdmin, async (req, res) => {
+
+  const result = [];
+
+  for (const b of db.data.bookings) {
+
     const slot = db.data.slots.find(s => s.id === b.slotId);
     const service = db.data.services.find(s => s.id === b.serviceId);
+    const user = await User.findById(b.userId);
 
-    return {
+    result.push({
       id: b.id,
       user: b.username,
+      phone: user?.phone || "-",
+      email: user?.email || "-",
       date: slot?.date,
       time: slot?.time,
       service: service?.name,
       price: service?.price,
       status: b.status,
       completed: b.completed
-    };
-  });
+    });
+  }
 
-  res.json(data);
+  res.json(result);
 });
 
 /* ---------- ADD SLOT ---------- */
@@ -342,22 +349,23 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
 
   const { id, status, reason } = req.body;
 
-  const booking = db.data.bookings.find(
-    b => b.id === Number(id)
-  );
-
+  const booking = db.data.bookings.find(b => b.id == id);
   if (!booking)
-    return res.json({ error: "ไม่พบ booking" });
+    return res.json({ error: "ไม่พบการจอง" });
 
   booking.status = status;
-  booking.reason = reason || null;
 
-  // 🔥 ถ้า reject → คืน slot
   if (status === "rejected") {
-    const slot = db.data.slots.find(
-      s => s.id === booking.slotId
-    );
+
+    booking.reason = reason || "ปฏิเสธโดย admin";
+
+    // 🔥 คืน slot
+    const slot = db.data.slots.find(s => s.id === booking.slotId);
     if (slot) slot.status = "available";
+  }
+
+  if (status === "approved") {
+    booking.reason = null;
   }
 
   await db.write();
@@ -398,7 +406,7 @@ app.post("/admin/delete-booking", requireAdmin, async (req, res) => {
   if (!booking)
     return res.json({ error: "ไม่พบ booking" });
 
-  // 🔥 คืน slot ถ้ายังไม่ได้ completed
+  // 🔥 คืน slot ถ้ายังไม่ completed
   if (!booking.completed) {
     const slot = db.data.slots.find(
       s => s.id === booking.slotId

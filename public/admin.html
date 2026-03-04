@@ -278,23 +278,48 @@ async function deleteSlot(id){
 
 /* ================= BOOKINGS ================= */
 async function loadBookings(){
-  const res=await fetch("/admin/bookings",{ credentials:"include" });
-  const data=await res.json();
-  const div=document.getElementById("bookingList");
+
+  const res = await fetch("/admin/bookings",{ credentials:"include" });
+  const data = await res.json();
+
+  const div = document.getElementById("bookingList");
   div.innerHTML="";
+
   data.forEach(b=>{
-    div.innerHTML+=`
+
+    const badgeClass =
+      b.status==="approved" ? "green" :
+      b.status==="rejected" ? "gray" :
+      "orange";
+
+    div.innerHTML += `
       <div class="card">
-        👤 ${b.user} | 📅 ${b.date} ⏰ ${b.time}<br>
-        💅 ${b.service} (${b.price} บาท)<br>
-        <span class="badge ${b.status==="approved"?"green":b.status==="rejected"?"gray":"orange"}">
+
+        <strong>👤 ${b.user}</strong><br>
+        📱 ${b.phone}<br>
+        📧 ${b.email}<br>
+        📅 ${b.date} ⏰ ${b.time}<br>
+        💅 ${b.service} (${b.price} บาท)<br><br>
+
+        <span class="badge ${badgeClass}">
           ${b.status}
-        </span><br><br>
-        ${b.status==="pending"?
+        </span>
+
+        <br><br>
+
+        ${b.status==="pending" ?
           `<button onclick="approve(${b.id})">Approve</button>
-           <button onclick="rejectBooking(${b.id})">Reject</button>`:""}
-        ${b.status==="approved"?
-          `<button onclick="completeBooking(${b.id})">✔ เสร็จแล้ว</button>`:""}
+           <button onclick="rejectBooking(${b.id})">Reject</button>` : ""}
+
+        ${b.status==="approved" ?
+          `<button onclick="completeBooking(${b.id})">✔ เสร็จแล้ว</button>` : ""}
+
+        ${b.status==="rejected" ?
+          `<button style="background:#dc2626"
+             onclick="deleteBooking(${b.id})">
+             🗑 ลบรายการ
+           </button>` : ""}
+
       </div>
     `;
   });
@@ -334,6 +359,18 @@ async function completeBooking(id){
   loadBookings();
   loadCalendar();
 }
+async function deleteBooking(id){
+
+  await fetch("/admin/delete-booking",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json"},
+    credentials:"include",
+    body:JSON.stringify({ id })
+  });
+
+  loadBookings();
+  loadCalendar();
+}
 
 /* ================= SERVICES ================= */
 async function loadServices(){
@@ -352,15 +389,26 @@ async function loadServices(){
 }
 
 async function addService(){
-  await fetch("/admin/add-service",{
+
+  const res = await fetch("/admin/add-service",{
     method:"POST",
     headers:{ "Content-Type":"application/json"},
     credentials:"include",
     body:JSON.stringify({
-      name:newName.value,
-      price:newPrice.value
+      name:newName.value.trim(),
+      price:Number(newPrice.value)
     })
   });
+
+  const data = await res.json();
+
+  if(data.error){
+    alert(data.error);
+  }else{
+    newName.value="";
+    newPrice.value="";
+  }
+
   loadServices();
 }
 
