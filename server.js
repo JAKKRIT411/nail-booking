@@ -352,6 +352,14 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
   booking.status = status;
   booking.reason = reason || null;
 
+  // 🔥 ถ้า reject → คืน slot
+  if (status === "rejected") {
+    const slot = db.data.slots.find(
+      s => s.id === booking.slotId
+    );
+    if (slot) slot.status = "available";
+  }
+
   await db.write();
   res.json({ success: true });
 });
@@ -378,6 +386,81 @@ app.post("/admin/complete-booking", requireAdmin, async (req, res) => {
 /* ---------- ALL SLOTS ---------- */
 app.get("/admin/all-slots", requireAdmin, (req, res) => {
   res.json(db.data.slots);
+});
+app.post("/admin/delete-booking", requireAdmin, async (req, res) => {
+
+  const { id } = req.body;
+
+  const booking = db.data.bookings.find(
+    b => b.id === Number(id)
+  );
+
+  if (!booking)
+    return res.json({ error: "ไม่พบ booking" });
+
+  // 🔥 คืน slot ถ้ายังไม่ได้ completed
+  if (!booking.completed) {
+    const slot = db.data.slots.find(
+      s => s.id === booking.slotId
+    );
+    if (slot) slot.status = "available";
+  }
+
+  db.data.bookings = db.data.bookings.filter(
+    b => b.id !== Number(id)
+  );
+
+  await db.write();
+  res.json({ success: true });
+});
+/* ---------- ADD SERVICE ---------- */
+app.post("/admin/add-service", requireAdmin, async (req, res) => {
+
+  const { name, price } = req.body;
+
+  if (!name || !price)
+    return res.json({ error: "กรอกข้อมูลให้ครบ" });
+
+  db.data.services.push({
+    id: Date.now(),
+    name,
+    price: Number(price)
+  });
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- UPDATE SERVICE ---------- */
+app.post("/admin/update-service", requireAdmin, async (req, res) => {
+
+  const { id, name, price } = req.body;
+
+  const service = db.data.services.find(
+    s => s.id === Number(id)
+  );
+
+  if (!service)
+    return res.json({ error: "ไม่พบ service" });
+
+  service.name = name;
+  service.price = Number(price);
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- DELETE SERVICE ---------- */
+app.post("/admin/delete-service", requireAdmin, async (req, res) => {
+
+  const { id } = req.body;
+
+  db.data.services = db.data.services.filter(
+    s => s.id !== Number(id)
+  );
+
+  await db.write();
+  res.json({ success: true });
 });
 /* ================= START ================= */
 
