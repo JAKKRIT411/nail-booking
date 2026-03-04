@@ -36,7 +36,7 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/uploads", express.static("uploads"));
+
 app.set("trust proxy", 1);
 app.use(
   session({
@@ -106,13 +106,15 @@ function isValidPhone(phone) {
 
 /* ================= MULTER ================= */
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname))
+/* ================= MULTER ================= */
+
+const storage = multer.memoryStorage();
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // จำกัด 5MB
 });
 
-const upload = multer({ storage });
 
 /* ================= MIDDLEWARE ================= */
 
@@ -217,11 +219,17 @@ app.get("/api/slots", (req, res) => {
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 
   const { slotId, serviceId } = req.body;
-  const slip = req.file ? "/uploads/" + req.file.filename : null;
 
   const slot = db.data.slots.find(s => s.id === Number(slotId));
   if (!slot) return res.send("ไม่พบคิว");
   if (slot.status === "booked") return res.send("คิวนี้ถูกจองแล้ว");
+
+  // 🔥 เก็บสลิปเป็น base64 ลง DB
+  let slip = null;
+
+  if (req.file) {
+    slip = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+  }
 
   db.data.bookings.push({
     id: Date.now(),
@@ -237,6 +245,7 @@ app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
   });
 
   slot.status = "booked";
+
   await db.write();
 
   res.redirect("/success.html");
