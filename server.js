@@ -6,7 +6,11 @@ import bcrypt from "bcrypt";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import mongoose from "mongoose";
 
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log("Mongo Error:", err));
 /* ================= BASIC ================= */
 
 const __filename = fileURLToPath(import.meta.url);
