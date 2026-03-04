@@ -276,6 +276,109 @@ app.get("/api/me", (req, res) => {
 
   res.json({ user: req.session.user });
 });
+/* ================= ADMIN ================= */
+
+app.get("/admin/bookings", requireAdmin, (req, res) => {
+  const data = db.data.bookings.map(b => {
+    const slot = db.data.slots.find(s => s.id === b.slotId);
+    const service = db.data.services.find(s => s.id === b.serviceId);
+
+    return {
+      id: b.id,
+      user: b.username,
+      date: slot?.date,
+      time: slot?.time,
+      service: service?.name,
+      price: service?.price,
+      status: b.status,
+      completed: b.completed
+    };
+  });
+
+  res.json(data);
+});
+
+/* ---------- ADD SLOT ---------- */
+app.post("/admin/add-slot", requireAdmin, async (req, res) => {
+
+  const { date, time } = req.body;
+
+  if (!date || !time)
+    return res.json({ error: "กรอกข้อมูลให้ครบ" });
+
+  const exists = db.data.slots.find(
+    s => s.date === date && s.time === time
+  );
+
+  if (exists)
+    return res.json({ error: "มี slot นี้แล้ว" });
+
+  db.data.slots.push({
+    id: Date.now(),
+    date,
+    time,
+    status: "available"
+  });
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- DELETE SLOT ---------- */
+app.post("/admin/delete-slot", requireAdmin, async (req, res) => {
+
+  const { id } = req.body;
+
+  db.data.slots = db.data.slots.filter(
+    s => s.id !== Number(id)
+  );
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- UPDATE BOOKING ---------- */
+app.post("/admin/update-booking", requireAdmin, async (req, res) => {
+
+  const { id, status, reason } = req.body;
+
+  const booking = db.data.bookings.find(
+    b => b.id === Number(id)
+  );
+
+  if (!booking)
+    return res.json({ error: "ไม่พบ booking" });
+
+  booking.status = status;
+  booking.reason = reason || null;
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- COMPLETE BOOKING ---------- */
+app.post("/admin/complete-booking", requireAdmin, async (req, res) => {
+
+  const { id } = req.body;
+
+  const booking = db.data.bookings.find(
+    b => b.id === Number(id)
+  );
+
+  if (!booking)
+    return res.json({ error: "ไม่พบ booking" });
+
+  booking.completed = true;
+  booking.completedAt = new Date();
+
+  await db.write();
+  res.json({ success: true });
+});
+
+/* ---------- ALL SLOTS ---------- */
+app.get("/admin/all-slots", requireAdmin, (req, res) => {
+  res.json(db.data.slots);
+});
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
