@@ -180,7 +180,10 @@ async function loadSlots() {
 }
 
 async function loadMyBookings() {
-  const res = await fetch("/api/my-bookings");
+  const res = await fetch("/api/my-bookings", {
+    credentials: "include"
+  });
+
   if (!res.ok) return;
 
   const bookings = await res.json();
@@ -193,8 +196,6 @@ async function loadMyBookings() {
   }
 
   bookings.forEach(b => {
-
-    // 🔔 แจ้งเตือนถ้าถูก reject
     if (b.status === "rejected" && b.reason) {
       alert(`❌ การจองวันที่ ${b.date} เวลา ${b.time}
 ถูกยกเลิก
