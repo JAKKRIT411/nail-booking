@@ -269,7 +269,13 @@ app.get("/api/my-bookings", requireLogin, (req, res) => {
 
   res.json(myBookings);
 });
+app.get("/api/me", (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
 
+  res.json({ user: req.session.user });
+});
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
