@@ -297,6 +297,7 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
       time: slot?.time,
       service: service?.name,
       price: service?.price,
+      slip: b.slip,              // 🔥 ต้องมีอันนี้
       status: b.status,
       completed: b.completed
     });
@@ -304,7 +305,6 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
 
   res.json(result);
 });
-
 /* ---------- ADD SLOT ---------- */
 app.post("/admin/add-slot", requireAdmin, async (req, res) => {
 

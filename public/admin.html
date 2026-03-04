@@ -299,7 +299,21 @@ async function loadBookings(){
         📱 ${b.phone}<br>
         📧 ${b.email}<br>
         📅 ${b.date} ⏰ ${b.time}<br>
-        💅 ${b.service} (${b.price} บาท)<br><br>
+        💅 ${b.service} (${b.price} บาท)<br>
+
+        ${b.slip ? `
+          <br>
+          <strong>สลิป:</strong><br>
+          <img src="${b.slip}"
+               style="width:180px;
+                      margin-top:8px;
+                      border-radius:10px;
+                      box-shadow:0 4px 12px rgba(0,0,0,0.1);
+                      cursor:pointer"
+               onclick="window.open('${b.slip}','_blank')">
+        ` : `<br><span style="color:#9ca3af">ไม่มีสลิป</span>`}
+
+        <br><br>
 
         <span class="badge ${badgeClass}">
           ${b.status}
