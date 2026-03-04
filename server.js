@@ -1,16 +1,31 @@
 import express from "express";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import { Low } from "lowdb";
+import { JSONFile } from "lowdb/node";
 import bcrypt from "bcrypt";
 import path from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import mongoose from "mongoose";
 
-/* ================= CONNECT MONGODB ================= */
+/* ================= MONGODB ================= */
 
-await mongoose.connect(process.env.MONGO_URI);
-console.log("MongoDB Connected");
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch(err => console.log("Mongo Error:", err));
+
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true },
+  email: { type: String, unique: true },
+  phone: String,
+  password: String,
+  role: { type: String, default: "user" },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Number, default: null }
+});
+
+const User = mongoose.model("User", userSchema);
 
 /* ================= BASIC ================= */
 
@@ -42,63 +57,49 @@ app.use(
   })
 );
 
-/* ================= MODELS ================= */
+/* ================= LOWDB ================= */
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, unique: true },
-  email: { type: String, unique: true },
-  phone: String,
-  password: String,
-  role: { type: String, default: "user" },
-  loginAttempts: { type: Number, default: 0 },
-  lockUntil: Date
-});
-const User = mongoose.model("User", userSchema);
+const adapter = new JSONFile(
+  path.join(__dirname, "database", "db.json")
+);
 
-const serviceSchema = new mongoose.Schema({
-  name: String,
-  price: Number
-});
-const Service = mongoose.model("Service", serviceSchema);
+const defaultData = {
+  services: [],
+  slots: [],
+  bookings: []
+};
 
-const slotSchema = new mongoose.Schema({
-  date: String,
-  time: String,
-  status: { type: String, default: "available" }
-});
-const Slot = mongoose.model("Slot", slotSchema);
-
-const bookingSchema = new mongoose.Schema({
-  user: String,
-  slotId: mongoose.Schema.Types.ObjectId,
-  serviceId: mongoose.Schema.Types.ObjectId,
-  slip: String,
-  status: { type: String, default: "pending" },
-  reason: String,
-  completed: { type: Boolean, default: false },
-  completedAt: Date
-});
-const Booking = mongoose.model("Booking", bookingSchema);
+const db = new Low(adapter, defaultData);
+await db.read();
+if (!db.data) db.data = defaultData;
+await db.write();
 
 /* ================= ADMIN SEED ================= */
 
-if (!(await User.findOne({ role: "admin" }))) {
-  const hashed = await bcrypt.hash("Admin123", 10);
-  await User.create({
-    username: "admin",
-    email: "admin@gmail.com",
-    phone: "0812345678",
-    password: hashed,
-    role: "admin"
-  });
-  console.log("🔥 Admin Created");
-}
+(async () => {
+  const adminExists = await User.findOne({ role: "admin" });
+
+  if (!adminExists) {
+    const hashed = await bcrypt.hash("Admin123", 10);
+
+    await User.create({
+      username: "admin",
+      email: "admin@gmail.com",
+      phone: "0812345678",
+      password: hashed,
+      role: "admin"
+    });
+
+    console.log("🔥 Admin Created: admin / Admin123");
+  }
+})();
 
 /* ================= VALIDATION ================= */
 
 function isStrongPassword(password) {
   return /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
 }
+
 function isValidPhone(phone) {
   return /^0\d{9}$/.test(phone);
 }
@@ -110,6 +111,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) =>
     cb(null, Date.now() + path.extname(file.originalname))
 });
+
 const upload = multer({ storage });
 
 /* ================= MIDDLEWARE ================= */
@@ -118,6 +120,7 @@ function requireLogin(req, res, next) {
   if (!req.session.user) return res.redirect("/login.html");
   next();
 }
+
 function requireAdmin(req, res, next) {
   if (!req.session.user || req.session.user.role !== "admin")
     return res.redirect("/login.html");
@@ -138,11 +141,12 @@ app.post("/register", async (req, res) => {
   if (!isStrongPassword(password))
     return res.send("รหัสผ่านต้อง 8 ตัว มีพิมพ์ใหญ่ + ตัวเลข");
 
-  if (await User.findOne({ username }))
-    return res.send("Username ซ้ำ");
+  const existingUser = await User.findOne({
+    $or: [{ username }, { email }]
+  });
 
-  if (await User.findOne({ email }))
-    return res.send("Email ซ้ำ");
+  if (existingUser)
+    return res.send("Username หรือ Email ซ้ำ");
 
   const hashed = await bcrypt.hash(password, 10);
 
@@ -160,7 +164,7 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   const user = await User.findOne({
-    username: new RegExp("^" + username + "$", "i")
+    username: new RegExp(`^${username}$`, "i")
   });
 
   if (!user) return res.send("ไม่พบผู้ใช้");
@@ -183,7 +187,7 @@ app.post("/login", async (req, res) => {
   await user.save();
 
   req.session.user = {
-    id: user._id,
+    id: user._id.toString(),
     username: user.username,
     role: user.role
   };
@@ -194,55 +198,82 @@ app.post("/login", async (req, res) => {
   res.redirect("/index.html");
 });
 
-/* ================= SERVICES ================= */
-
-app.get("/api/services", async (req, res) => {
-  res.json(await Service.find());
+app.get("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.redirect("/login.html");
+  });
 });
 
-/* ================= SLOTS ================= */
+/* ================= USER ================= */
 
-app.get("/api/slots", async (req, res) => {
-  res.json(await Slot.find({ status: "available" }));
+app.get("/api/services", (req, res) => {
+  res.json(db.data.services);
 });
 
-app.post("/admin/add-slot", requireAdmin, async (req, res) => {
-  const { date, time } = req.body;
-
-  if (await Slot.findOne({ date, time }))
-    return res.json({ error: "มี slot นี้แล้ว" });
-
-  await Slot.create({ date, time });
-  res.json({ success: true });
+app.get("/api/slots", (req, res) => {
+  res.json(db.data.slots.filter(s => s.status === "available"));
 });
-
-/* ================= BOOK ================= */
 
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
+
   const { slotId, serviceId } = req.body;
   const slip = req.file ? "/uploads/" + req.file.filename : null;
 
-  const slot = await Slot.findById(slotId);
+  const slot = db.data.slots.find(s => s.id === Number(slotId));
   if (!slot) return res.send("ไม่พบคิว");
-  if (slot.status === "booked")
-    return res.send("คิวนี้ถูกจองแล้ว");
+  if (slot.status === "booked") return res.send("คิวนี้ถูกจองแล้ว");
 
-  await Booking.create({
-    user: req.session.user.username,
-    slotId,
-    serviceId,
-    slip
+  db.data.bookings.push({
+    id: Date.now(),
+    userId: req.session.user.id,
+    username: req.session.user.username,
+    slotId: Number(slotId),
+    serviceId: Number(serviceId),
+    slip,
+    status: "pending",
+    reason: null,
+    completed: false,
+    completedAt: null
   });
 
   slot.status = "booked";
-  await slot.save();
+  await db.write();
 
   res.redirect("/success.html");
+});
+
+app.get("/api/my-bookings", requireLogin, (req, res) => {
+
+  const myBookings = db.data.bookings
+    .filter(b =>
+      b.userId === req.session.user.id &&
+      b.completed !== true
+    )
+    .map(b => {
+
+      const slot = db.data.slots.find(s => s.id === b.slotId);
+      const service = db.data.services.find(s => s.id === b.serviceId);
+
+      return {
+        id: b.id,
+        date: slot?.date,
+        time: slot?.time,
+        serviceName: service?.name,
+        price: service?.price,
+        slip: b.slip,
+        status: b.status,
+        reason: b.reason,
+        completed: b.completed
+      };
+    });
+
+  res.json(myBookings);
 });
 
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
