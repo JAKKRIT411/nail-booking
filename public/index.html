@@ -149,6 +149,7 @@ img {
 
 </div>
 <script>
+
 async function loadServices() {
   const res = await fetch("/api/services");
   const services = await res.json();
@@ -157,8 +158,11 @@ async function loadServices() {
   select.innerHTML = "";
 
   services.forEach(s => {
+
+    const id = s._id || s.id; // FIX รองรับ MongoDB
+
     select.innerHTML += `
-      <option value="${s.id}">
+      <option value="${id}">
         ${s.name} - ${s.price} บาท
       </option>`;
   });
@@ -172,8 +176,13 @@ async function loadSlots() {
   select.innerHTML = "";
 
   slots.forEach(s => {
+
+    if(s.status !== "available") return; // FIX ไม่โชว์ slot ที่ถูกจอง
+
+    const id = s._id || s.id; // FIX MongoDB
+
     select.innerHTML += `
-      <option value="${s.id}">
+      <option value="${id}">
         ${s.date} ${s.time}
       </option>`;
   });
@@ -196,6 +205,10 @@ async function loadMyBookings() {
   }
 
   bookings.forEach(b => {
+
+    const serviceName = b.serviceName || b.service; // FIX backend compatibility
+    const id = b.id || b._id; // FIX MongoDB
+
     if (b.status === "rejected" && b.reason) {
       alert(`❌ การจองวันที่ ${b.date} เวลา ${b.time}
 ถูกยกเลิก
@@ -207,7 +220,7 @@ ${b.reason}`);
     container.innerHTML += `
       <div class="booking-card">
         <p><b>📅 ${b.date}</b> เวลา ${b.time}</p>
-        <p>💅 ${b.serviceName} (${b.price} บาท)</p>
+        <p>💅 ${serviceName} (${b.price} บาท)</p>
 
         <span class="badge ${b.status}">
           ${b.status}
@@ -226,7 +239,7 @@ ${b.reason}`);
         ${
           b.status === "rejected"
             ? `<br><br>
-               <button onclick="deleteBooking(${b.id})"
+               <button onclick="deleteBooking('${id}')"
                        style="background:red;color:white;border:none;padding:6px 12px;border-radius:6px;">
                  ลบรายการนี้
                </button>`
@@ -237,8 +250,8 @@ ${b.reason}`);
   });
 }
 
-// ✅ ต้องอยู่นอก loadMyBookings
 async function deleteBooking(id){
+
   if(!confirm("ยืนยันการลบรายการนี้?")) return;
 
   const res = await fetch("/api/delete-my-booking", {
@@ -257,13 +270,17 @@ async function deleteBooking(id){
 }
 
 async function checkLogin() {
+
   const res = await fetch("/api/me", {
     credentials: "include"
   });
 
   if (!res.ok) {
+
     document.getElementById("authSection").innerHTML =
-      `<a href="/login.html">🔑 Login</a>`;
+      `<a href="/login.html">🔑 Login</a>
+       <a href="/register.html">📝 Register</a>`; // FIX เพิ่ม register
+
     return;
   }
 
@@ -280,6 +297,7 @@ async function checkLogin() {
 loadServices();
 loadSlots();
 checkLogin();
+
 </script>
 
 </body>

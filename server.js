@@ -534,7 +534,19 @@ app.get("/logout",(req,res)=>{
   res.redirect("/login.html")
  })
 })
+/* ================= WEB ================= */
 
+app.get("/",(req,res)=>{
+ res.sendFile(path.join(__dirname,"public/index.html"))
+})
+
+app.get("/login",(req,res)=>{
+ res.sendFile(path.join(__dirname,"public/login.html"))
+})
+
+app.get("/register",(req,res)=>{
+ res.sendFile(path.join(__dirname,"public/register.html"))
+})
 /* ================= START SERVER ================= */
 
 const PORT = process.env.PORT || 3000
