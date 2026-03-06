@@ -232,7 +232,7 @@ app.post("/login",async(req,res)=>{
  }
 
  if(user.role==="admin")
-  return res.redirect("/admin.html")
+  return res.redirect("/admin")
 
  res.redirect("/index.html")
 
@@ -302,7 +302,10 @@ app.post("/book",requireLogin,upload.single("slip"),async(req,res)=>{
 
  const {serviceId,slotId} = req.body
 
- const slot = await Slot.findById(slotId)
+ const slot = await Slot.findOne({
+ _id:slotId,
+ status:"available"
+   })
 
  if(!slot)
   return res.send("slot not found")
@@ -449,6 +452,9 @@ app.post("/admin/reject",requireAdmin,async(req,res)=>{
 
  res.json({success:true})
 
+})
+app.get("/admin",requireAdmin,(req,res)=>{
+ res.sendFile(path.join(__dirname,"public/admin.html"))
 })
 
 /* ================= START SERVER ================= */
