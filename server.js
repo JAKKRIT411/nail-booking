@@ -11,8 +11,6 @@ import helmet from "helmet"
 
 dotenv.config()
 
-/* ================= BASIC ================= */
-
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -523,6 +521,18 @@ app.get("/api/me",(req,res)=>{
 
  })
 
+})
+app.get("/api/user",(req,res)=>{
+ if(req.session.user){
+  res.json(req.session.user)
+ }else{
+  res.json(null)
+ }
+})
+app.get("/logout",(req,res)=>{
+ req.session.destroy(()=>{
+  res.redirect("/login.html")
+ })
 })
 
 /* ================= START SERVER ================= */
