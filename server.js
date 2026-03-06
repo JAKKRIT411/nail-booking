@@ -1,8 +1,6 @@
 import express from "express";
 import session from "express-session";
 import MongoStore from "connect-mongo";
-import { Low } from "lowdb";
-import { JSONFile } from "lowdb/node";
 import bcrypt from "bcrypt";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -57,22 +55,50 @@ app.use(
   })
 );
 
-/* ================= LOWDB ================= */
+/* ================= SERVICES ================= */
 
-const adapter = new JSONFile(
-  path.join(__dirname, "database", "db.json")
-);
+const serviceSchema = new mongoose.Schema({
+  name: String,
+  price: Number,
+  duration: Number
+});
 
-const defaultData = {
-  services: [],
-  slots: [],
-  bookings: []
-};
+const Service = mongoose.model("Service", serviceSchema);
 
-const db = new Low(adapter, defaultData);
-await db.read();
-if (!db.data) db.data = defaultData;
-await db.write();
+
+/* ================= SLOTS ================= */
+
+const slotSchema = new mongoose.Schema({
+  date: String,
+  time: String,
+  available: { type: Boolean, default: true }
+});
+
+const Slot = mongoose.model("Slot", slotSchema);
+
+
+/* ================= BOOKINGS ================= */
+
+const bookingSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  serviceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Service"
+  },
+  slotId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Slot"
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+const Booking = mongoose.model("Booking", bookingSchema);
 
 /* ================= ADMIN SEED ================= */
 
@@ -478,6 +504,66 @@ app.post("/admin/delete-service", requireAdmin, async (req, res) => {
 
   await db.write();
   res.json({ success: true });
+});
+app.post("/api/services", requireAdmin, async (req, res) => {
+
+  const service = new Service({
+    name: req.body.name,
+    price: req.body.price,
+    duration: req.body.duration
+  });
+
+  await service.save();
+
+  res.json(service);
+
+});
+
+
+app.get("/api/services", async (req, res) => {
+
+  const services = await Service.find();
+
+  res.json(services);
+
+});
+app.post("/api/slots", requireAdmin, async (req, res) => {
+
+  const slot = new Slot({
+    date: req.body.date,
+    time: req.body.time
+  });
+
+  await slot.save();
+
+  res.json(slot);
+
+});
+
+
+app.get("/api/slots", async (req, res) => {
+
+  const slots = await Slot.find({ available: true });
+
+  res.json(slots);
+
+});
+app.post("/api/book", requireLogin, async (req, res) => {
+
+  const booking = new Booking({
+    userId: req.session.user._id,
+    serviceId: req.body.serviceId,
+    slotId: req.body.slotId
+  });
+
+  await booking.save();
+
+  await Slot.findByIdAndUpdate(req.body.slotId, {
+    available: false
+  });
+
+  res.json({ success: true });
+
 });
 /* ================= START ================= */
 
