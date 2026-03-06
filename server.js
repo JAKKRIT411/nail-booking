@@ -7,6 +7,7 @@ import multer from "multer"
 import path from "path"
 import { fileURLToPath } from "url"
 import dotenv from "dotenv"
+import helmet from "helmet"
 
 dotenv.config()
 
@@ -17,20 +18,22 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
+app.use(helmet())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
-app.use(express.static(path.join(__dirname, "public")))
+app.use(express.static(path.join(__dirname,"public")))
 
 /* ================= DATABASE ================= */
 
 await mongoose.connect(process.env.MONGO_URI)
+
 console.log("MongoDB Connected")
 
 /* ================= SESSION ================= */
 
 app.use(session({
  name:"nail-session",
- secret:process.env.SESSION_SECRET || "super-secret",
+ secret:process.env.SESSION_SECRET || "secret",
  resave:false,
  saveUninitialized:false,
  store:MongoStore.create({
@@ -38,7 +41,7 @@ app.use(session({
  }),
  cookie:{
   httpOnly:true,
-  maxAge:24*60*60*1000
+  maxAge:1000*60*60*24
  }
 }))
 
@@ -48,7 +51,7 @@ const storage = multer.memoryStorage()
 
 const upload = multer({
  storage,
- limits:{ fileSize: 5 * 1024 * 1024 }
+ limits:{ fileSize:5*1024*1024 }
 })
 
 /* ================= MODELS ================= */
@@ -63,20 +66,13 @@ const userSchema = new mongoose.Schema({
  role:{
   type:String,
   default:"user"
- },
-
- loginAttempts:{
-  type:Number,
-  default:0
- },
-
- lockUntil:Number
+ }
 
 },{timestamps:true})
 
 const User = mongoose.model("User",userSchema)
 
-/* ---------------- SERVICE ---------------- */
+/* ---------- SERVICE ---------- */
 
 const serviceSchema = new mongoose.Schema({
 
@@ -88,7 +84,7 @@ const serviceSchema = new mongoose.Schema({
 
 const Service = mongoose.model("Service",serviceSchema)
 
-/* ---------------- SLOT ---------------- */
+/* ---------- SLOT ---------- */
 
 const slotSchema = new mongoose.Schema({
 
@@ -104,7 +100,7 @@ const slotSchema = new mongoose.Schema({
 
 const Slot = mongoose.model("Slot",slotSchema)
 
-/* ---------------- BOOKING ---------------- */
+/* ---------- BOOKING ---------- */
 
 const bookingSchema = new mongoose.Schema({
 
@@ -176,11 +172,13 @@ async function createAdmin(){
   const hash = await bcrypt.hash("Admin123",10)
 
   await User.create({
+
    username:"admin",
    email:"admin@gmail.com",
    phone:"0000000000",
    password:hash,
    role:"admin"
+
   })
 
   console.log("Admin created -> admin / Admin123")
@@ -189,28 +187,38 @@ async function createAdmin(){
 
 }
 
-createAdmin()
+await createAdmin()
 
 /* ================= AUTH ================= */
 
 app.post("/register",async(req,res)=>{
+
+ try{
 
  const {username,email,phone,password} = req.body
 
  const hash = await bcrypt.hash(password,10)
 
  await User.create({
+
   username,
   email,
   phone,
   password:hash
+
  })
 
  res.redirect("/login.html")
 
+ }catch(e){
+
+  res.send("user already exists")
+
+ }
+
 })
 
-app.post("/login", async (req,res)=>{
+app.post("/login",async(req,res)=>{
 
  const {username,password} = req.body
 
@@ -225,16 +233,20 @@ app.post("/login", async (req,res)=>{
   return res.send("wrong password")
 
  req.session.user = {
+
   id:user._id,
   username:user.username,
   role:user.role
+
  }
 
  req.session.save(()=>{
-  if(user.role==="admin"){
+
+  if(user.role==="admin")
    return res.redirect("/admin")
-  }
-  return res.redirect("/index.html")
+
+  res.redirect("/index.html")
+
  })
 
 })
@@ -242,7 +254,9 @@ app.post("/login", async (req,res)=>{
 app.get("/logout",(req,res)=>{
 
  req.session.destroy(()=>{
+
   res.redirect("/login.html")
+
  })
 
 })
@@ -263,7 +277,7 @@ app.get("/api/services",async(req,res)=>{
 
 app.get("/api/slots",async(req,res)=>{
 
- const slots = await Slot.find({status:"available"})
+ const slots = await Slot.find()
 
  res.json(slots)
 
@@ -274,8 +288,7 @@ app.get("/api/slots",async(req,res)=>{
 app.get("/api/my-bookings",requireLogin,async(req,res)=>{
 
  const bookings = await Booking.find({
-  user:req.session.user.id,
-  completed:false
+  user:req.session.user.id
  })
  .populate("service")
  .populate("slot")
@@ -303,16 +316,16 @@ app.post("/book",requireLogin,upload.single("slip"),async(req,res)=>{
 
  const {serviceId,slotId} = req.body
 
- const slot = await Slot.findOne({
- _id:slotId,
- status:"available"
-   })
+ const slot = await Slot.findById(slotId)
 
  if(!slot)
   return res.send("slot not found")
 
- if(slot.status==="booked")
+ if(slot.status !== "available")
   return res.send("slot already booked")
+
+ slot.status = "booked"
+ await slot.save()
 
  let slip = null
 
@@ -332,33 +345,43 @@ app.post("/book",requireLogin,upload.single("slip"),async(req,res)=>{
 
  })
 
- slot.status = "booked"
-
- await slot.save()
-
  res.redirect("/success.html")
 
 })
 
 /* ================= ADMIN ================= */
 
-/* ---------- ADD SERVICE ---------- */
+app.get("/admin",requireAdmin,(req,res)=>{
+
+ res.sendFile(path.join(__dirname,"public/admin.html"))
+
+})
+
+/* ---------- SERVICES ---------- */
+
+app.get("/admin/services",requireAdmin,async(req,res)=>{
+
+ const services = await Service.find()
+
+ res.json(services)
+
+})
 
 app.post("/admin/add-service",requireAdmin,async(req,res)=>{
 
  const {name,price,duration} = req.body
 
  await Service.create({
+
   name,
   price:Number(price),
   duration:Number(duration)
+
  })
 
  res.json({success:true})
 
 })
-
-/* ---------- DELETE SERVICE ---------- */
 
 app.post("/admin/delete-service",requireAdmin,async(req,res)=>{
 
@@ -368,23 +391,15 @@ app.post("/admin/delete-service",requireAdmin,async(req,res)=>{
 
 })
 
-/* ---------- UPDATE SERVICE ---------- */
+/* ---------- SLOTS ---------- */
 
-app.post("/admin/update-service",requireAdmin,async(req,res)=>{
+app.get("/admin/slots",requireAdmin,async(req,res)=>{
 
- const {id,name,price,duration} = req.body
+ const slots = await Slot.find()
 
- await Service.findByIdAndUpdate(id,{
-  name,
-  price:Number(price),
-  duration:Number(duration)
- })
-
- res.json({success:true})
+ res.json(slots)
 
 })
-
-/* ---------- ADD SLOT ---------- */
 
 app.post("/admin/add-slot",requireAdmin,async(req,res)=>{
 
@@ -396,17 +411,22 @@ app.post("/admin/add-slot",requireAdmin,async(req,res)=>{
   return res.json({error:"slot already exists"})
 
  await Slot.create({
+
   date,
   time
+
  })
 
  res.json({success:true})
 
 })
 
-/* ---------- DELETE SLOT ---------- */
-
 app.post("/admin/delete-slot",requireAdmin,async(req,res)=>{
+
+ const booking = await Booking.findOne({slot:req.body.id})
+
+ if(booking)
+  return res.json({error:"slot already booked"})
 
  await Slot.findByIdAndDelete(req.body.id)
 
@@ -414,7 +434,7 @@ app.post("/admin/delete-slot",requireAdmin,async(req,res)=>{
 
 })
 
-/* ---------- ADMIN BOOKINGS ---------- */
+/* ---------- BOOKINGS ---------- */
 
 app.get("/admin/bookings",requireAdmin,async(req,res)=>{
 
@@ -425,8 +445,6 @@ app.get("/admin/bookings",requireAdmin,async(req,res)=>{
  res.json(bookings)
 
 })
-
-/* ---------- APPROVE BOOKING ---------- */
 
 app.post("/admin/approve",requireAdmin,async(req,res)=>{
 
@@ -440,8 +458,6 @@ app.post("/admin/approve",requireAdmin,async(req,res)=>{
 
 })
 
-/* ---------- REJECT BOOKING ---------- */
-
 app.post("/admin/reject",requireAdmin,async(req,res)=>{
 
  const {id,reason} = req.body
@@ -454,19 +470,57 @@ app.post("/admin/reject",requireAdmin,async(req,res)=>{
  res.json({success:true})
 
 })
-app.get("/admin",requireAdmin,(req,res)=>{
- res.sendFile(path.join(__dirname,"public/admin.html"))
+
+app.post("/admin/complete",requireAdmin,async(req,res)=>{
+
+ const {id} = req.body
+
+ await Booking.findByIdAndUpdate(id,{
+  completed:true,
+  completedAt:new Date()
+ })
+
+ res.json({success:true})
+
 })
+
+/* ================= REVENUE ================= */
+
+app.get("/admin/revenue",requireAdmin,async(req,res)=>{
+
+ const bookings = await Booking.find({
+  completed:true
+ }).populate("service")
+
+ let total = 0
+
+ bookings.forEach(b=>{
+
+  if(b.service)
+   total += b.service.price
+
+ })
+
+ res.json({
+
+  total,
+  bookings:bookings.length
+
+ })
+
+})
+
 /* ================= ME ================= */
 
 app.get("/api/me",(req,res)=>{
 
- if(!req.session.user){
+ if(!req.session.user)
   return res.status(401).json({error:"not logged in"})
- }
 
  res.json({
+
   user:req.session.user
+
  })
 
 })
@@ -476,5 +530,7 @@ app.get("/api/me",(req,res)=>{
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT,()=>{
+
  console.log("Server running on port "+PORT)
+
 })
