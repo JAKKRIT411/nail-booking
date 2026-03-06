@@ -30,17 +30,21 @@ console.log("MongoDB Connected")
 /* ================= SESSION ================= */
 
 app.use(session({
+
  name:"nail-session",
- secret:process.env.SESSION_SECRET || "secret",
+ secret:process.env.SESSION_SECRET || "secret123",
  resave:false,
  saveUninitialized:false,
+
  store:MongoStore.create({
   mongoUrl:process.env.MONGO_URI
  }),
+
  cookie:{
   httpOnly:true,
   maxAge:1000*60*60*24
  }
+
 }))
 
 /* ================= MULTER ================= */
@@ -193,20 +197,20 @@ app.post("/register",async(req,res)=>{
 
  try{
 
- const {username,email,phone,password} = req.body
+  const {username,email,phone,password} = req.body
 
- const hash = await bcrypt.hash(password,10)
+  const hash = await bcrypt.hash(password,10)
 
- await User.create({
+  await User.create({
 
-  username,
-  email,
-  phone,
-  password:hash
+   username,
+   email,
+   phone,
+   password:hash
 
- })
+  })
 
- res.redirect("/login.html")
+  res.redirect("/login.html")
 
  }catch(e){
 
@@ -238,10 +242,14 @@ app.post("/login",async(req,res)=>{
 
  }
 
+ console.log("LOGIN:",req.session.user)
+
  req.session.save(()=>{
 
-  if(user.role==="admin")
+  if(user.role==="admin"){
+   console.log("ADMIN LOGIN")
    return res.redirect("/admin")
+  }
 
   res.redirect("/index.html")
 
@@ -251,7 +259,12 @@ app.post("/login",async(req,res)=>{
 
 app.get("/logout",(req,res)=>{
 
- req.session.destroy(()=>{
+ req.session.destroy(err=>{
+
+  if(err)
+   return res.send("logout error")
+
+  res.clearCookie("nail-session")
 
   res.redirect("/login.html")
 
@@ -260,6 +273,15 @@ app.get("/logout",(req,res)=>{
 })
 
 /* ================= API ================= */
+
+app.get("/api/user",(req,res)=>{
+
+ if(!req.session.user)
+  return res.json(null)
+
+ res.json(req.session.user)
+
+})
 
 /* ---------- SERVICES ---------- */
 
@@ -409,10 +431,8 @@ app.post("/admin/add-slot",requireAdmin,async(req,res)=>{
   return res.json({error:"slot already exists"})
 
  await Slot.create({
-
   date,
   time
-
  })
 
  res.json({success:true})
@@ -493,41 +513,15 @@ app.get("/admin/revenue",requireAdmin,async(req,res)=>{
  let total = 0
 
  bookings.forEach(b=>{
-
   if(b.service)
    total += b.service.price
-
  })
 
  res.json({
-
   total,
   bookings:bookings.length
-
  })
 
-})
-
-/* ================= ME ================= */
-
-app.get("/api/me",(req,res)=>{
-
- if(!req.session.user)
-  return res.status(401).json({error:"not logged in"})
-
- res.json({
-
-  user:req.session.user
-
- })
-
-})
-app.get("/api/user",(req,res)=>{
- if(req.session.user){
-  res.json(req.session.user)
- }else{
-  res.json(null)
- }
 })
 
 /* ================= WEB ================= */
@@ -543,6 +537,7 @@ app.get("/login",(req,res)=>{
 app.get("/register",(req,res)=>{
  res.sendFile(path.join(__dirname,"public/register.html"))
 })
+
 /* ================= START SERVER ================= */
 
 const PORT = process.env.PORT || 3000
