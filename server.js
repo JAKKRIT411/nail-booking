@@ -457,6 +457,19 @@ app.post("/admin/reject",requireAdmin,async(req,res)=>{
 app.get("/admin",requireAdmin,(req,res)=>{
  res.sendFile(path.join(__dirname,"public/admin.html"))
 })
+/* ================= ME ================= */
+
+app.get("/api/me",(req,res)=>{
+
+ if(!req.session.user){
+  return res.status(401).json({error:"not logged in"})
+ }
+
+ res.json({
+  user:req.session.user
+ })
+
+})
 
 /* ================= START SERVER ================= */
 
