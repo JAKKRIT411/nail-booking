@@ -23,9 +23,8 @@ app.use(express.static(path.join(__dirname, "public")))
 
 /* ================= DATABASE ================= */
 
-mongoose.connect(process.env.MONGO_URI)
-.then(()=>console.log("MongoDB Connected"))
-.catch(err=>console.log(err))
+await mongoose.connect(process.env.MONGO_URI)
+console.log("MongoDB Connected")
 
 /* ================= SESSION ================= */
 
@@ -211,7 +210,7 @@ app.post("/register",async(req,res)=>{
 
 })
 
-app.post("/login",async(req,res)=>{
+app.post("/login", async (req,res)=>{
 
  const {username,password} = req.body
 
@@ -225,16 +224,18 @@ app.post("/login",async(req,res)=>{
  if(!match)
   return res.send("wrong password")
 
- req.session.user={
+ req.session.user = {
   id:user._id,
   username:user.username,
   role:user.role
  }
 
- if(user.role==="admin")
-  return res.redirect("/admin")
-
- res.redirect("/index.html")
+ req.session.save(()=>{
+  if(user.role==="admin"){
+   return res.redirect("/admin")
+  }
+  return res.redirect("/index.html")
+ })
 
 })
 
