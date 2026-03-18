@@ -17,21 +17,14 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
-/* ================= FIX CSP ================= */
-app.use(
-  helmet({
-    contentSecurityPolicy: false
-  })
-)
+/* ================= SECURITY ================= */
+app.use(helmet({ contentSecurityPolicy: false }))
 
 /* ================= BASIC ================= */
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-/* ✅ STATIC (สำคัญมาก) */
 app.use(express.static(path.join(__dirname, "public")))
-
-/* ✅ uploads */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 /* ================= DATABASE ================= */
@@ -53,7 +46,7 @@ app.use(session({
   }
 }))
 
-/* ================= MULTER ================= */
+/* ================= UPLOAD ================= */
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads")
 }
@@ -68,29 +61,27 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 /* ================= MODELS ================= */
-const userSchema = new mongoose.Schema({
+
+const User = mongoose.model("User", new mongoose.Schema({
   username: { type: String, unique: true },
   email: { type: String, unique: true },
   phone: String,
   password: String,
   role: { type: String, default: "user" }
-})
-const User = mongoose.model("User", userSchema)
+}))
 
-const serviceSchema = new mongoose.Schema({
+const Service = mongoose.model("Service", new mongoose.Schema({
   name: String,
   price: Number
-})
-const Service = mongoose.model("Service", serviceSchema)
+}))
 
-const slotSchema = new mongoose.Schema({
+const Slot = mongoose.model("Slot", new mongoose.Schema({
   date: String,
   time: String,
   status: { type: String, default: "available" }
-})
-const Slot = mongoose.model("Slot", slotSchema)
+}))
 
-const bookingSchema = new mongoose.Schema({
+const Booking = mongoose.model("Booking", new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   username: String,
   service: { type: mongoose.Schema.Types.ObjectId, ref: "Service" },
@@ -99,10 +90,10 @@ const bookingSchema = new mongoose.Schema({
   status: { type: String, default: "pending" },
   reason: String,
   completed: { type: Boolean, default: false }
-})
-const Booking = mongoose.model("Booking", bookingSchema)
+}))
 
 /* ================= MIDDLEWARE ================= */
+
 function requireLogin(req, res, next) {
   if (!req.session.user) return res.redirect("/login.html")
   next()
@@ -115,12 +106,11 @@ function requireAdmin(req, res, next) {
 }
 
 /* ================= ADMIN SEED ================= */
+
 async function createAdmin() {
   const admin = await User.findOne({ role: "admin" })
-
   if (!admin) {
     const hash = await bcrypt.hash("Admin123", 10)
-
     await User.create({
       username: "admin",
       email: "admin@gmail.com",
@@ -128,29 +118,25 @@ async function createAdmin() {
       password: hash,
       role: "admin"
     })
-
-    console.log("Admin created -> admin / Admin123")
+    console.log("Admin created")
   }
 }
 await createAdmin()
 
 /* ================= AUTH ================= */
-app.post("/register", async (req, res) => {
-  const { username, email, phone, password } = req.body
-  const hash = await bcrypt.hash(password, 10)
 
-  await User.create({ username, email, phone, password: hash })
+app.post("/register", async (req, res) => {
+  const hash = await bcrypt.hash(req.body.password, 10)
+  await User.create({ ...req.body, password: hash })
   res.redirect("/login.html")
 })
 
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body
-
-  const user = await User.findOne({ username })
+  const user = await User.findOne({ username: req.body.username })
   if (!user) return res.send("user not found")
 
-  const match = await bcrypt.compare(password, user.password)
-  if (!match) return res.send("wrong password")
+  const ok = await bcrypt.compare(req.body.password, user.password)
+  if (!ok) return res.send("wrong password")
 
   req.session.user = {
     id: user._id,
@@ -172,6 +158,7 @@ app.get("/logout", (req, res) => {
 })
 
 /* ================= API ================= */
+
 app.get("/api/me", (req, res) => {
   if (!req.session.user)
     return res.status(401).json({ user: null })
@@ -187,12 +174,17 @@ app.get("/api/slots", async (req, res) => {
   res.json(await Slot.find())
 })
 
+/* 🔥 USER BOOKINGS (ซ่อน rejected) */
 app.get("/api/my-bookings", requireLogin, async (req, res) => {
-  const bookings = await Booking.find({ user: req.session.user.id })
+
+  const bookings = await Booking.find({
+    user: req.session.user.id,
+    status: { $ne: "rejected" }
+  })
     .populate("service")
     .populate("slot")
 
-  const result = bookings.map(b => ({
+  res.json(bookings.map(b => ({
     id: b._id,
     service: b.service?.name,
     price: b.service?.price,
@@ -201,20 +193,27 @@ app.get("/api/my-bookings", requireLogin, async (req, res) => {
     status: b.status,
     reason: b.reason,
     slip: b.slip
-  }))
-
-  res.json(result)
+  })))
 })
 
+/* 🔥 USER DELETE → คืน slot */
 app.post("/api/delete-my-booking", requireLogin, async (req, res) => {
-  await Booking.findOneAndDelete({
+
+  const booking = await Booking.findOne({
     _id: req.body.id,
     user: req.session.user.id
   })
+
+  if (!booking) return res.json({ error: "not found" })
+
+  await Slot.findByIdAndUpdate(booking.slot, { status: "available" })
+  await Booking.deleteOne({ _id: booking._id })
+
   res.json({ success: true })
 })
 
 /* ================= BOOK ================= */
+
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 
   const { serviceId, slotId } = req.body
@@ -227,20 +226,19 @@ app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 
   if (!slot) return res.send("slot already booked")
 
-  const slip = req.file ? "/uploads/" + req.file.filename : null
-
   await Booking.create({
     user: req.session.user.id,
     username: req.session.user.username,
     service: serviceId,
     slot: slotId,
-    slip
+    slip: req.file ? "/uploads/" + req.file.filename : null
   })
 
   res.redirect("/success.html")
 })
 
 /* ================= ADMIN ================= */
+
 app.get("/admin", requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "public/admin.html"))
 })
@@ -250,50 +248,50 @@ app.get("/admin/all-slots", requireAdmin, async (req, res) => {
 })
 
 app.post("/admin/add-slot", requireAdmin, async (req, res) => {
-  const { date, time } = req.body
-
-  const exist = await Slot.findOne({ date, time })
+  const exist = await Slot.findOne(req.body)
   if (exist) return res.json({ error: "slot exists" })
 
-  await Slot.create({ date, time })
+  await Slot.create(req.body)
   res.json({ success: true })
 })
 
+/* 🔥 DELETE SLOT */
 app.post("/admin/delete-slot", requireAdmin, async (req, res) => {
-  const booking = await Booking.findOne({ slot: req.body.id })
-  if (booking) return res.json({ error: "slot booked" })
+
+  const used = await Booking.findOne({
+    slot: req.body.id,
+    status: { $ne: "rejected" }
+  })
+
+  if (used)
+    return res.json({ error: "slot ถูกจองอยู่ ลบไม่ได้" })
 
   await Slot.findByIdAndDelete(req.body.id)
   res.json({ success: true })
 })
 
 app.get("/admin/bookings", requireAdmin, async (req, res) => {
-  const bookings = await Booking.find()
+  const data = await Booking.find()
     .populate("service")
     .populate("slot")
 
-  res.json(bookings)
+  res.json(data)
 })
 
+/* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */
 app.post("/admin/update-booking", requireAdmin, async (req, res) => {
-  const { id, status, reason } = req.body
 
+  const { id, status, reason } = req.body
   const booking = await Booking.findById(id)
 
-  if(!booking) return res.status(404).json({error:"not found"})
+  if (!booking) return res.status(404).json({ error: "not found" })
 
-  // 🔥 ถ้า reject → คืน slot
-  if(status === "rejected"){
-    await Slot.findByIdAndUpdate(booking.slot, {
-      status: "available"
-    })
+  if (status === "rejected") {
+    await Slot.findByIdAndUpdate(booking.slot, { status: "available" })
   }
 
-  // 🔥 ถ้า approve → lock slot (กันพลาด)
-  if(status === "approved"){
-    await Slot.findByIdAndUpdate(booking.slot, {
-      status: "booked"
-    })
+  if (status === "approved") {
+    await Slot.findByIdAndUpdate(booking.slot, { status: "booked" })
   }
 
   await Booking.findByIdAndUpdate(id, {
@@ -304,20 +302,19 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
   res.json({ success: true })
 })
 
-app.get("/admin/revenue", requireAdmin, async (req, res) => {
-  const bookings = await Booking.find({ completed: true })
-    .populate("service")
+/* 🔥 DELETE SERVICE */
+app.post("/admin/delete-service", requireAdmin, async (req, res) => {
 
-  const revenue = {}
-
-  bookings.forEach(b => {
-    if (!b.service) return
-    const name = b.service.name
-    if (!revenue[name]) revenue[name] = 0
-    revenue[name] += b.service.price
+  const used = await Booking.findOne({
+    service: req.body.id,
+    status: { $ne: "rejected" }
   })
 
-  res.json(revenue)
+  if (used)
+    return res.json({ error: "service ยังถูกใช้อยู่" })
+
+  await Service.findByIdAndDelete(req.body.id)
+  res.json({ success: true })
 })
 
 app.post("/admin/add-service", requireAdmin, async (req, res) => {
@@ -325,16 +322,11 @@ app.post("/admin/add-service", requireAdmin, async (req, res) => {
     name: req.body.name,
     price: Number(req.body.price)
   })
-
-  res.json({ success: true })
-})
-
-app.post("/admin/delete-service", requireAdmin, async (req, res) => {
-  await Service.findByIdAndDelete(req.body.id)
   res.json({ success: true })
 })
 
 /* ================= START ================= */
+
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
