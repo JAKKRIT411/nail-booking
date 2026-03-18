@@ -114,81 +114,154 @@ img {
 }
 
 </style>
-</head>
 
+<head>
+  <meta charset="UTF-8">
+  <title>ร้านทำเล็บ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
 <body>
 
-<header>
-  <h1>💅 Nail Booking</h1>
-  <div class="auth" id="authSection"></div>
-</header>
+<!-- 🔐 LOGIN SECTION -->
+<div id="authSection" style="text-align:right; padding:10px;"></div>
 
 <div class="container">
 
-  <div class="card">
-    <h2>📅 จองคิว</h2>
+  <h1>💅 ร้านทำเล็บ</h1>
 
-    <form action="/book" method="POST" enctype="multipart/form-data">
-      <label>เลือกบริการ</label>
-      <select name="serviceId" id="serviceSelect" required></select>
+  <!-- 📌 SERVICES -->
+  <h2>บริการ</h2>
+  <select id="serviceSelect"></select>
 
-      <label>เลือกวันและเวลา</label>
-      <select name="slotId" id="slotSelect" required></select>
+  <!-- 📅 SLOTS -->
+  <h2>เลือกเวลา</h2>
+  <select id="slotSelect"></select>
 
-      <label>อัปโหลดสลิป</label>
-      <input type="file" name="slip" required>
+  <!-- 📤 BOOK -->
+  <h2>จองคิว</h2>
+  <form action="/book" method="POST" enctype="multipart/form-data">
 
-      <button type="submit">จองเลย</button>
-    </form>
-  </div>
+    <input type="hidden" name="serviceId" id="serviceId">
+    <input type="hidden" name="slotId" id="slotId">
 
-  <div class="card">
-    <h2>📌 คิวของฉัน</h2>
-    <div id="myBookings"></div>
-  </div>
+    <label>อัปโหลดสลิป:</label>
+    <input type="file" name="slip" required>
+
+    <br><br>
+    <button type="submit">จอง</button>
+  </form>
+
+  <!-- 📋 MY BOOKINGS -->
+  <h2>รายการจองของฉัน</h2>
+  <div id="myBookings"></div>
 
 </div>
+
 <script>
 
+/* ================= LOGIN ================= */
+
+async function checkLogin() {
+
+  try {
+
+    const res = await fetch("/api/me", {
+      credentials: "include"
+    });
+
+    if (!res.ok) {
+      showGuest();
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!data.user) {
+      showGuest();
+      return;
+    }
+
+    document.getElementById("authSection").innerHTML = `
+      👤 ${data.user.username}
+      <a href="/logout">🚪 Logout</a>
+    `;
+
+    loadMyBookings();
+
+  } catch (err) {
+    console.log(err);
+    showGuest();
+  }
+}
+
+function showGuest() {
+  document.getElementById("authSection").innerHTML =
+    `<a href="/login.html">🔑 Login</a>
+     <a href="/register.html">📝 Register</a>`;
+}
+
+/* ================= LOAD SERVICES ================= */
+
 async function loadServices() {
+
   const res = await fetch("/api/services");
   const services = await res.json();
 
   const select = document.getElementById("serviceSelect");
+
   select.innerHTML = "";
 
   services.forEach(s => {
+    const option = document.createElement("option");
+    option.value = s._id;
+    option.textContent = `${s.name} (${s.price} บาท)`;
+    select.appendChild(option);
+  });
 
-    const id = s._id || s.id; // FIX รองรับ MongoDB
+  if (services.length > 0) {
+    document.getElementById("serviceId").value = services[0]._id;
+  }
 
-    select.innerHTML += `
-      <option value="${id}">
-        ${s.name} - ${s.price} บาท
-      </option>`;
+  select.addEventListener("change", () => {
+    document.getElementById("serviceId").value = select.value;
   });
 }
 
+/* ================= LOAD SLOTS ================= */
+
 async function loadSlots() {
+
   const res = await fetch("/api/slots");
   const slots = await res.json();
 
   const select = document.getElementById("slotSelect");
+
   select.innerHTML = "";
 
-  slots.forEach(s => {
+  slots
+    .filter(s => s.status === "available")
+    .forEach(s => {
 
-    if(s.status !== "available") return; // FIX ไม่โชว์ slot ที่ถูกจอง
+      const option = document.createElement("option");
+      option.value = s._id;
+      option.textContent = `${s.date} - ${s.time}`;
 
-    const id = s._id || s.id; // FIX MongoDB
+      select.appendChild(option);
+    });
 
-    select.innerHTML += `
-      <option value="${id}">
-        ${s.date} ${s.time}
-      </option>`;
+  if (slots.length > 0) {
+    document.getElementById("slotId").value = select.value;
+  }
+
+  select.addEventListener("change", () => {
+    document.getElementById("slotId").value = select.value;
   });
 }
 
+/* ================= MY BOOKINGS ================= */
+
 async function loadMyBookings() {
+
   const res = await fetch("/api/my-bookings", {
     credentials: "include"
   });
@@ -196,107 +269,59 @@ async function loadMyBookings() {
   if (!res.ok) return;
 
   const bookings = await res.json();
-  const container = document.getElementById("myBookings");
-  container.innerHTML = "";
+
+  const div = document.getElementById("myBookings");
+
+  div.innerHTML = "";
 
   if (bookings.length === 0) {
-    container.innerHTML = "ยังไม่มีการจอง";
+    div.innerHTML = "ไม่มีรายการจอง";
     return;
   }
 
   bookings.forEach(b => {
 
-    const serviceName = b.serviceName || b.service; // FIX backend compatibility
-    const id = b.id || b._id; // FIX MongoDB
+    const el = document.createElement("div");
 
-    if (b.status === "rejected" && b.reason) {
-      alert(`❌ การจองวันที่ ${b.date} เวลา ${b.time}
-ถูกยกเลิก
-
-เหตุผล:
-${b.reason}`);
-    }
-
-    container.innerHTML += `
-      <div class="booking-card">
-        <p><b>📅 ${b.date}</b> เวลา ${b.time}</p>
-        <p>💅 ${serviceName} (${b.price} บาท)</p>
-
-        <span class="badge ${b.status}">
-          ${b.status}
-        </span>
-
-        ${
-          b.status === "rejected" && b.reason
-            ? `<p style="color:red;font-weight:bold;">
-                 ❗ เหตุผล: ${b.reason}
-               </p>`
-            : ""
-        }
-
-        ${b.slip ? `<br><img src="${b.slip}" style="max-width:150px;">` : ""}
-
-        ${
-          b.status === "rejected"
-            ? `<br><br>
-               <button onclick="deleteBooking('${id}')"
-                       style="background:red;color:white;border:none;padding:6px 12px;border-radius:6px;">
-                 ลบรายการนี้
-               </button>`
-            : ""
-        }
-      </div>
+    el.innerHTML = `
+      <p>
+        ${b.service} | ${b.date} ${b.time}
+        <br>
+        สถานะ: ${b.status}
+        ${b.reason ? `<br>เหตุผล: ${b.reason}` : ""}
+        <br>
+        ${b.slip ? `<a href="${b.slip}" target="_blank">ดูสลิป</a>` : ""}
+        <br>
+        <button onclick="deleteBooking('${b.id}')">ลบ</button>
+      </p>
+      <hr>
     `;
+
+    div.appendChild(el);
   });
 }
 
-async function deleteBooking(id){
+/* ================= DELETE ================= */
 
-  if(!confirm("ยืนยันการลบรายการนี้?")) return;
+async function deleteBooking(id) {
 
-  const res = await fetch("/api/delete-my-booking", {
+  await fetch("/api/delete-my-booking", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
     body: JSON.stringify({ id })
   });
-
-  const data = await res.json();
-
-  if(data.success){
-    loadMyBookings();
-  } else {
-    alert(data.error || "เกิดข้อผิดพลาด");
-  }
-}
-
-async function checkLogin() {
-
-  const res = await fetch("/api/me", {
-    credentials: "include"
-  });
-
-  if (!res.ok) {
-
-    document.getElementById("authSection").innerHTML =
-      `<a href="/login.html">🔑 Login</a>
-       <a href="/register.html">📝 Register</a>`; // FIX เพิ่ม register
-
-    return;
-  }
-
-  const data = await res.json();
-
-  document.getElementById("authSection").innerHTML = `
-    👤 ${data.user.username}
-    <a href="/logout">🚪 Logout</a>
-  `;
 
   loadMyBookings();
 }
 
+/* ================= INIT ================= */
+
+checkLogin();
 loadServices();
 loadSlots();
-checkLogin();
 
 </script>
 
