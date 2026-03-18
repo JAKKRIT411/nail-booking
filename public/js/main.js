@@ -1,14 +1,27 @@
 async function checkLogin(){
-  const r = await fetch("/api/me",{credentials:"include"})
-  if(!r.ok) return
+  try{
+    const r = await fetch("/api/me",{credentials:"include"})
+    
+    console.log("status:", r.status)
 
-  const d = await r.json()
-  document.getElementById("authSection").innerHTML =
-    `👤 ${d.user.username} <a href="/logout">Logout</a>`
+    if(!r.ok){
+      document.getElementById("authSection").innerHTML =
+        `<a href="/login.html">Login</a>`
+      return
+    }
 
-  loadMyBookings()
+    const d = await r.json()
+    console.log("user:", d)
+
+    document.getElementById("authSection").innerHTML =
+      `👤 ${d.user.username} <a href="/logout">Logout</a>`
+
+    loadMyBookings()
+
+  }catch(e){
+    console.error(e)
+  }
 }
-
 async function loadServices(){
   const data = await fetch("/api/services").then(r=>r.json())
   const sel = document.getElementById("serviceSelect")
