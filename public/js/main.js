@@ -68,9 +68,15 @@ async function loadMyBookings(){
   data.forEach(b=>{
     box.innerHTML += `
       <div>
-        ${b.service.name} | ${b.slot.date} ${b.slot.time}
-        <button onclick="del('${b._id}')">ลบ</button>
+        💅 ${b.service} (${b.price}฿)
+        <br>
+        📅 ${b.date} ⏰ ${b.time}
+        <br>
+        📌 ${b.status}
+        <br>
+        <button onclick="del('${b.id}')">ลบ</button>
       </div>
+      <hr>
     `
   })
 }
