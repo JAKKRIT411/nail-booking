@@ -17,19 +17,28 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
-app.use(helmet())
+/* ================= FIX CSP ================= */
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+)
+
+/* ================= BASIC ================= */
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+/* ✅ STATIC (สำคัญมาก) */
 app.use(express.static(path.join(__dirname, "public")))
+
+/* ✅ uploads */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 /* ================= DATABASE ================= */
-
 await mongoose.connect(process.env.MONGO_URI)
 console.log("MongoDB Connected")
 
 /* ================= SESSION ================= */
-
 app.use(session({
   name: "nail-session",
   secret: process.env.SESSION_SECRET || "secret123",
@@ -45,7 +54,6 @@ app.use(session({
 }))
 
 /* ================= MULTER ================= */
-
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads")
 }
@@ -60,7 +68,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage })
 
 /* ================= MODELS ================= */
-
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true },
   email: { type: String, unique: true },
@@ -68,14 +75,12 @@ const userSchema = new mongoose.Schema({
   password: String,
   role: { type: String, default: "user" }
 })
-
 const User = mongoose.model("User", userSchema)
 
 const serviceSchema = new mongoose.Schema({
   name: String,
   price: Number
 })
-
 const Service = mongoose.model("Service", serviceSchema)
 
 const slotSchema = new mongoose.Schema({
@@ -83,7 +88,6 @@ const slotSchema = new mongoose.Schema({
   time: String,
   status: { type: String, default: "available" }
 })
-
 const Slot = mongoose.model("Slot", slotSchema)
 
 const bookingSchema = new mongoose.Schema({
@@ -96,14 +100,11 @@ const bookingSchema = new mongoose.Schema({
   reason: String,
   completed: { type: Boolean, default: false }
 })
-
 const Booking = mongoose.model("Booking", bookingSchema)
 
 /* ================= MIDDLEWARE ================= */
-
 function requireLogin(req, res, next) {
-  if (!req.session.user)
-    return res.redirect("/login.html")
+  if (!req.session.user) return res.redirect("/login.html")
   next()
 }
 
@@ -114,7 +115,6 @@ function requireAdmin(req, res, next) {
 }
 
 /* ================= ADMIN SEED ================= */
-
 async function createAdmin() {
   const admin = await User.findOne({ role: "admin" })
 
@@ -132,18 +132,14 @@ async function createAdmin() {
     console.log("Admin created -> admin / Admin123")
   }
 }
-
 await createAdmin()
 
 /* ================= AUTH ================= */
-
 app.post("/register", async (req, res) => {
   const { username, email, phone, password } = req.body
-
   const hash = await bcrypt.hash(password, 10)
 
   await User.create({ username, email, phone, password: hash })
-
   res.redirect("/login.html")
 })
 
@@ -176,7 +172,6 @@ app.get("/logout", (req, res) => {
 })
 
 /* ================= API ================= */
-
 app.get("/api/me", (req, res) => {
   if (!req.session.user)
     return res.status(401).json({ user: null })
@@ -185,13 +180,11 @@ app.get("/api/me", (req, res) => {
 })
 
 app.get("/api/services", async (req, res) => {
-  const services = await Service.find()
-  res.json(services)
+  res.json(await Service.find())
 })
 
 app.get("/api/slots", async (req, res) => {
-  const slots = await Slot.find()
-  res.json(slots)
+  res.json(await Slot.find())
 })
 
 app.get("/api/my-bookings", requireLogin, async (req, res) => {
@@ -214,18 +207,14 @@ app.get("/api/my-bookings", requireLogin, async (req, res) => {
 })
 
 app.post("/api/delete-my-booking", requireLogin, async (req, res) => {
-  const { id } = req.body
-
   await Booking.findOneAndDelete({
-    _id: id,
+    _id: req.body.id,
     user: req.session.user.id
   })
-
   res.json({ success: true })
 })
 
 /* ================= BOOK ================= */
-
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 
   const { serviceId, slotId } = req.body
@@ -238,10 +227,7 @@ app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 
   if (!slot) return res.send("slot already booked")
 
-  let slip = null
-  if (req.file) {
-    slip = "/uploads/" + req.file.filename
-  }
+  const slip = req.file ? "/uploads/" + req.file.filename : null
 
   await Booking.create({
     user: req.session.user.id,
@@ -255,14 +241,12 @@ app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
 })
 
 /* ================= ADMIN ================= */
-
 app.get("/admin", requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "public/admin.html"))
 })
 
 app.get("/admin/all-slots", requireAdmin, async (req, res) => {
-  const slots = await Slot.find()
-  res.json(slots)
+  res.json(await Slot.find())
 })
 
 app.post("/admin/add-slot", requireAdmin, async (req, res) => {
@@ -288,34 +272,19 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
     .populate("service")
     .populate("slot")
 
-  const result = bookings.map(b => ({
-    id: b._id,
-    user: b.username,
-    service: b.service?.name,
-    price: b.service?.price,
-    date: b.slot?.date,
-    time: b.slot?.time,
-    status: b.status,
-    reason: b.reason,
-    slip: b.slip
-  }))
-
-  res.json(result)
+  res.json(bookings)
 })
 
 app.post("/admin/update-booking", requireAdmin, async (req, res) => {
-  const { id, status, reason } = req.body
-
-  await Booking.findByIdAndUpdate(id, {
-    status,
-    reason: reason || null
+  await Booking.findByIdAndUpdate(req.body.id, {
+    status: req.body.status,
+    reason: req.body.reason || null
   })
 
   res.json({ success: true })
 })
 
 app.get("/admin/revenue", requireAdmin, async (req, res) => {
-
   const bookings = await Booking.find({ completed: true })
     .populate("service")
 
@@ -323,11 +292,8 @@ app.get("/admin/revenue", requireAdmin, async (req, res) => {
 
   bookings.forEach(b => {
     if (!b.service) return
-
     const name = b.service.name
-
     if (!revenue[name]) revenue[name] = 0
-
     revenue[name] += b.service.price
   })
 
@@ -335,11 +301,9 @@ app.get("/admin/revenue", requireAdmin, async (req, res) => {
 })
 
 app.post("/admin/add-service", requireAdmin, async (req, res) => {
-  const { name, price } = req.body
-
   await Service.create({
-    name,
-    price: Number(price)
+    name: req.body.name,
+    price: Number(req.body.price)
   })
 
   res.json({ success: true })
@@ -350,22 +314,7 @@ app.post("/admin/delete-service", requireAdmin, async (req, res) => {
   res.json({ success: true })
 })
 
-/* ================= WEB ================= */
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"))
-})
-
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/login.html"))
-})
-
-app.get("/register", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/register.html"))
-})
-
 /* ================= START ================= */
-
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {

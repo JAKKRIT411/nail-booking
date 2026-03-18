@@ -3,213 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <title>Nail Booking</title>
-
-<style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f9f3ff;
-  margin: 0;
-}
-
-header {
-  background: linear-gradient(90deg, #d946ef, #a855f7);
-  color: white;
-  padding: 15px 30px;
-  display: flex;
-  justify-content: space-between;
-}
-
-.container {
-  max-width: 900px;
-  margin: 30px auto;
-}
-
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-button {
-  background: #a855f7;
-  color: white;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-select, input {
-  width: 100%;
-  margin-bottom: 10px;
-}
-</style>
 </head>
 
 <body>
 
-<header>
-  <h1>💅 ร้านทำเล็บ</h1>
-  <div id="authSection" class="auth"></div>
-</header>
+<h1>💅 ร้านทำเล็บ</h1>
 
-<div class="container">
-
-<div class="card">
+<div id="authSection"></div>
 
 <h2>บริการ</h2>
 <select id="serviceSelect"></select>
 
-<h2>เลือกเวลา</h2>
+<h2>เวลา</h2>
 <select id="slotSelect"></select>
 
-<h2>จองคิว</h2>
+<h2>จอง</h2>
 <form action="/book" method="POST" enctype="multipart/form-data">
   <input type="hidden" name="serviceId" id="serviceId">
   <input type="hidden" name="slotId" id="slotId">
   <input type="file" name="slip" required>
-  <button type="submit">จอง</button>
+  <button>จอง</button>
 </form>
 
-</div>
-
-<div class="card">
-<h2>รายการจองของฉัน</h2>
+<h2>รายการของฉัน</h2>
 <div id="myBookings"></div>
-</div>
 
-</div>
-
-<script>
-
-/* ================= LOGIN ================= */
-
-async function checkLogin() {
-
-  const res = await fetch("/api/me", {
-    credentials: "include"
-  });
-
-  if (!res.ok) return showGuest();
-
-  const data = await res.json();
-
-  if (!data.user) return showGuest();
-
-  document.getElementById("authSection").innerHTML = `
-    👤 ${data.user.username}
-    <a href="/logout">🚪 Logout</a>
-  `;
-
-  loadMyBookings();
-}
-
-function showGuest() {
-  document.getElementById("authSection").innerHTML =
-    `<a href="/login.html">Login</a>
-     <a href="/register.html">Register</a>`;
-}
-
-/* ================= SERVICES ================= */
-
-async function loadServices() {
-
-  const res = await fetch("/api/services");
-  const services = await res.json();
-
-  const select = document.getElementById("serviceSelect");
-
-  services.forEach(s => {
-    const op = document.createElement("option");
-    op.value = s._id;
-    op.textContent = s.name;
-    select.appendChild(op);
-  });
-
-  select.onchange = () => {
-    document.getElementById("serviceId").value = select.value;
-  };
-
-  if (services.length > 0)
-    document.getElementById("serviceId").value = services[0]._id;
-}
-
-/* ================= SLOTS ================= */
-
-async function loadSlots() {
-
-  const res = await fetch("/api/slots");
-  const slots = await res.json();
-
-  const select = document.getElementById("slotSelect");
-
-  slots.filter(s=>s.status==="available").forEach(s => {
-    const op = document.createElement("option");
-    op.value = s._id;
-    op.textContent = s.date + " " + s.time;
-    select.appendChild(op);
-  });
-
-  select.onchange = () => {
-    document.getElementById("slotId").value = select.value;
-  };
-
-  if (select.value)
-    document.getElementById("slotId").value = select.value;
-}
-
-/* ================= BOOKINGS ================= */
-
-async function loadMyBookings() {
-
-  const res = await fetch("/api/my-bookings", {
-    credentials: "include"
-  });
-
-  if (!res.ok) return;
-
-  const data = await res.json();
-  const box = document.getElementById("myBookings");
-
-  box.innerHTML = "";
-
-  data.forEach(b => {
-    box.innerHTML += `
-      <div>
-        ${b.service} | ${b.date} ${b.time}
-        <br>
-        ${b.status}
-        <br>
-        <button onclick="deleteBooking('${b.id}')">ลบ</button>
-      </div>
-      <hr>
-    `;
-  });
-}
-
-/* ================= DELETE ================= */
-
-async function deleteBooking(id) {
-
-  await fetch("/api/delete-my-booking", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ id })
-  });
-
-  loadMyBookings();
-}
-
-/* ================= INIT ================= */
-
-window.onload = () => {
-  checkLogin();
-  loadServices();
-  loadSlots();
-};
-
-</script>
-
+<script src="/js/main.js"></script>
 </body>
 </html>
