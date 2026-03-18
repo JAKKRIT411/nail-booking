@@ -29,7 +29,11 @@ async function loadServices(){
   sel.innerHTML=""
 
   data.forEach(s=>{
-    sel.innerHTML += `<option value="${s._id}">${s.name}</option>`
+    sel.innerHTML += `
+      <option value="${s._id}">
+        💅 ${s.name} (${s.price}฿)
+      </option>
+    `
   })
 
   if(data[0]) document.getElementById("serviceId").value=data[0]._id
