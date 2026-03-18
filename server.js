@@ -25,13 +25,8 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")))
 
 /* ================= DATABASE ================= */
 
-try {
-  await mongoose.connect(process.env.MONGO_URI)
-  console.log("MongoDB Connected")
-} catch (err) {
-  console.log(err)
-  process.exit(1)
-}
+await mongoose.connect(process.env.MONGO_URI)
+console.log("MongoDB Connected")
 
 /* ================= SESSION ================= */
 
@@ -45,9 +40,7 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24,
-    secure: false,
-    sameSite: "lax"
+    maxAge: 1000 * 60 * 60 * 24
   }
 }))
 
@@ -64,46 +57,35 @@ const storage = multer.diskStorage({
   }
 })
 
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
-})
+const upload = multer({ storage })
 
 /* ================= MODELS ================= */
 
 const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
+  username: { type: String, unique: true },
+  email: { type: String, unique: true },
   phone: String,
   password: String,
   role: { type: String, default: "user" }
-}, { timestamps: true })
-
-userSchema.index({ username: 1 })
+})
 
 const User = mongoose.model("User", userSchema)
 
-/* SERVICE */
 const serviceSchema = new mongoose.Schema({
   name: String,
-  price: Number,
-  duration: Number
+  price: Number
 })
 
 const Service = mongoose.model("Service", serviceSchema)
 
-/* SLOT */
 const slotSchema = new mongoose.Schema({
   date: String,
   time: String,
   status: { type: String, default: "available" }
 })
 
-slotSchema.index({ date: 1, time: 1 })
-
 const Slot = mongoose.model("Slot", slotSchema)
 
-/* BOOKING */
 const bookingSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   username: String,
@@ -112,11 +94,8 @@ const bookingSchema = new mongoose.Schema({
   slip: String,
   status: { type: String, default: "pending" },
   reason: String,
-  completed: { type: Boolean, default: false },
-  completedAt: Date
-}, { timestamps: true })
-
-bookingSchema.index({ user: 1 })
+  completed: { type: Boolean, default: false }
+})
 
 const Booking = mongoose.model("Booking", bookingSchema)
 
@@ -159,25 +138,13 @@ await createAdmin()
 /* ================= AUTH ================= */
 
 app.post("/register", async (req, res) => {
-  try {
-    const { username, email, phone, password } = req.body
+  const { username, email, phone, password } = req.body
 
-    if (!username || !email || !password)
-      return res.send("missing data")
+  const hash = await bcrypt.hash(password, 10)
 
-    const hash = await bcrypt.hash(password, 10)
+  await User.create({ username, email, phone, password: hash })
 
-    await User.create({
-      username,
-      email,
-      phone,
-      password: hash
-    })
-
-    res.redirect("/login.html")
-  } catch (e) {
-    res.send("user already exists")
-  }
+  res.redirect("/login.html")
 })
 
 app.post("/login", async (req, res) => {
@@ -197,7 +164,7 @@ app.post("/login", async (req, res) => {
 
   req.session.save(() => {
     if (user.role === "admin") return res.redirect("/admin")
-    res.redirect("/index.html")
+    res.redirect("/")
   })
 })
 
@@ -208,40 +175,83 @@ app.get("/logout", (req, res) => {
   })
 })
 
-/* ================= BOOK (สำคัญ) ================= */
+/* ================= API ================= */
+
+app.get("/api/me", (req, res) => {
+  if (!req.session.user)
+    return res.status(401).json({ user: null })
+
+  res.json({ user: req.session.user })
+})
+
+app.get("/api/services", async (req, res) => {
+  const services = await Service.find()
+  res.json(services)
+})
+
+app.get("/api/slots", async (req, res) => {
+  const slots = await Slot.find()
+  res.json(slots)
+})
+
+app.get("/api/my-bookings", requireLogin, async (req, res) => {
+  const bookings = await Booking.find({ user: req.session.user.id })
+    .populate("service")
+    .populate("slot")
+
+  const result = bookings.map(b => ({
+    id: b._id,
+    service: b.service?.name,
+    price: b.service?.price,
+    date: b.slot?.date,
+    time: b.slot?.time,
+    status: b.status,
+    reason: b.reason,
+    slip: b.slip
+  }))
+
+  res.json(result)
+})
+
+app.post("/api/delete-my-booking", requireLogin, async (req, res) => {
+  const { id } = req.body
+
+  await Booking.findOneAndDelete({
+    _id: id,
+    user: req.session.user.id
+  })
+
+  res.json({ success: true })
+})
+
+/* ================= BOOK ================= */
 
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
-  try {
-    const { serviceId, slotId } = req.body
 
-    const slot = await Slot.findOneAndUpdate(
-      { _id: slotId, status: "available" },
-      { status: "booked" },
-      { new: true }
-    )
+  const { serviceId, slotId } = req.body
 
-    if (!slot)
-      return res.send("slot already booked")
+  const slot = await Slot.findOneAndUpdate(
+    { _id: slotId, status: "available" },
+    { status: "booked" },
+    { new: true }
+  )
 
-    let slip = null
-    if (req.file) {
-      slip = "/uploads/" + req.file.filename
-    }
+  if (!slot) return res.send("slot already booked")
 
-    await Booking.create({
-      user: req.session.user.id,
-      username: req.session.user.username,
-      service: serviceId,
-      slot: slotId,
-      slip
-    })
-
-    res.redirect("/success.html")
-
-  } catch (err) {
-    console.log(err)
-    res.send("error booking")
+  let slip = null
+  if (req.file) {
+    slip = "/uploads/" + req.file.filename
   }
+
+  await Booking.create({
+    user: req.session.user.id,
+    username: req.session.user.username,
+    service: serviceId,
+    slot: slotId,
+    slip
+  })
+
+  res.redirect("/success.html")
 })
 
 /* ================= ADMIN ================= */
@@ -250,35 +260,108 @@ app.get("/admin", requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, "public/admin.html"))
 })
 
+app.get("/admin/all-slots", requireAdmin, async (req, res) => {
+  const slots = await Slot.find()
+  res.json(slots)
+})
+
+app.post("/admin/add-slot", requireAdmin, async (req, res) => {
+  const { date, time } = req.body
+
+  const exist = await Slot.findOne({ date, time })
+  if (exist) return res.json({ error: "slot exists" })
+
+  await Slot.create({ date, time })
+  res.json({ success: true })
+})
+
+app.post("/admin/delete-slot", requireAdmin, async (req, res) => {
+  const booking = await Booking.findOne({ slot: req.body.id })
+  if (booking) return res.json({ error: "slot booked" })
+
+  await Slot.findByIdAndDelete(req.body.id)
+  res.json({ success: true })
+})
+
 app.get("/admin/bookings", requireAdmin, async (req, res) => {
   const bookings = await Booking.find()
     .populate("service")
     .populate("slot")
 
-  res.json(bookings)
+  const result = bookings.map(b => ({
+    id: b._id,
+    user: b.username,
+    service: b.service?.name,
+    price: b.service?.price,
+    date: b.slot?.date,
+    time: b.slot?.time,
+    status: b.status,
+    reason: b.reason,
+    slip: b.slip
+  }))
+
+  res.json(result)
 })
 
-app.post("/admin/approve", requireAdmin, async (req, res) => {
-  await Booking.findByIdAndUpdate(req.body.id, {
-    status: "approved"
+app.post("/admin/update-booking", requireAdmin, async (req, res) => {
+  const { id, status, reason } = req.body
+
+  await Booking.findByIdAndUpdate(id, {
+    status,
+    reason: reason || null
   })
+
   res.json({ success: true })
 })
 
-app.post("/admin/reject", requireAdmin, async (req, res) => {
-  await Booking.findByIdAndUpdate(req.body.id, {
-    status: "rejected",
-    reason: req.body.reason
+app.get("/admin/revenue", requireAdmin, async (req, res) => {
+
+  const bookings = await Booking.find({ completed: true })
+    .populate("service")
+
+  const revenue = {}
+
+  bookings.forEach(b => {
+    if (!b.service) return
+
+    const name = b.service.name
+
+    if (!revenue[name]) revenue[name] = 0
+
+    revenue[name] += b.service.price
   })
+
+  res.json(revenue)
+})
+
+app.post("/admin/add-service", requireAdmin, async (req, res) => {
+  const { name, price } = req.body
+
+  await Service.create({
+    name,
+    price: Number(price)
+  })
+
   res.json({ success: true })
 })
 
-app.post("/admin/complete", requireAdmin, async (req, res) => {
-  await Booking.findByIdAndUpdate(req.body.id, {
-    completed: true,
-    completedAt: new Date()
-  })
+app.post("/admin/delete-service", requireAdmin, async (req, res) => {
+  await Service.findByIdAndDelete(req.body.id)
   res.json({ success: true })
+})
+
+/* ================= WEB ================= */
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/index.html"))
+})
+
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/login.html"))
+})
+
+app.get("/register", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/register.html"))
 })
 
 /* ================= START ================= */
