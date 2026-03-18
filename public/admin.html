@@ -380,8 +380,8 @@ bookingList.innerHTML += `
 
 <strong>${b.user}</strong><br>
 
-📅 ${b.date} ⏰ ${b.time}<br>
-💅 ${b.service} (${b.price})<br>
+${b.service?.name} (${b.service?.price}฿)
+📅 ${b.slot?.date} ⏰ ${b.slot?.time}
 
 ${b.slip ? `<img src="${b.slip}" onclick="window.open('${b.slip}')">` : ""}
 
