@@ -9,7 +9,6 @@ body {
   font-family: Arial, sans-serif;
   background: #f9f3ff;
   margin: 0;
-  padding: 0;
 }
 
 header {
@@ -18,142 +17,66 @@ header {
   padding: 15px 30px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-}
-
-header h1 {
-  margin: 0;
-  font-size: 22px;
 }
 
 .container {
   max-width: 900px;
   margin: 30px auto;
-  padding: 20px;
 }
 
 .card {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
   margin-bottom: 20px;
 }
 
 button {
   background: #a855f7;
   color: white;
-  border: none;
-  padding: 10px 20px;
+  padding: 10px;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: bold;
 }
 
-button:hover {
-  background: #9333ea;
-}
-
-select, input[type="file"] {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+select, input {
   width: 100%;
   margin-bottom: 10px;
 }
-
-.booking-card {
-  border-left: 5px solid #a855f7;
-  padding: 15px;
-  margin-bottom: 10px;
-  background: #faf5ff;
-  border-radius: 8px;
-}
-
-.badge {
-  padding: 5px 10px;
-  border-radius: 20px;
-  color: white;
-  font-size: 12px;
-}
-
-.pending { background: orange; }
-.approved { background: green; }
-.rejected { background: red; }
-
-img {
-  margin-top: 10px;
-  border-radius: 8px;
-  max-width: 150px;
-}
-
-.auth a {
-  color: white;
-  margin-left: 10px;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.badge {
-  padding:4px 10px;
-  border-radius:12px;
-  color:white;
-  font-size:12px;
-}
-
-.badge.pending {
-  background:orange;
-}
-
-.badge.approved {
-  background:green;
-}
-
-.badge.rejected {
-  background:red;
-}
-
 </style>
-
-<head>
-  <meta charset="UTF-8">
-  <title>ร้านทำเล็บ</title>
-  <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
-<!-- 🔐 LOGIN SECTION -->
-<div id="authSection" style="text-align:right; padding:10px;"></div>
+<header>
+  <h1>💅 ร้านทำเล็บ</h1>
+  <div id="authSection" class="auth"></div>
+</header>
 
 <div class="container">
 
-  <h1>💅 ร้านทำเล็บ</h1>
+<div class="card">
 
-  <!-- 📌 SERVICES -->
-  <h2>บริการ</h2>
-  <select id="serviceSelect"></select>
+<h2>บริการ</h2>
+<select id="serviceSelect"></select>
 
-  <!-- 📅 SLOTS -->
-  <h2>เลือกเวลา</h2>
-  <select id="slotSelect"></select>
+<h2>เลือกเวลา</h2>
+<select id="slotSelect"></select>
 
-  <!-- 📤 BOOK -->
-  <h2>จองคิว</h2>
-  <form action="/book" method="POST" enctype="multipart/form-data">
+<h2>จองคิว</h2>
+<form action="/book" method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="serviceId" id="serviceId">
+  <input type="hidden" name="slotId" id="slotId">
+  <input type="file" name="slip" required>
+  <button type="submit">จอง</button>
+</form>
 
-    <input type="hidden" name="serviceId" id="serviceId">
-    <input type="hidden" name="slotId" id="slotId">
+</div>
 
-    <label>อัปโหลดสลิป:</label>
-    <input type="file" name="slip" required>
-
-    <br><br>
-    <button type="submit">จอง</button>
-  </form>
-
-  <!-- 📋 MY BOOKINGS -->
-  <h2>รายการจองของฉัน</h2>
-  <div id="myBookings"></div>
+<div class="card">
+<h2>รายการจองของฉัน</h2>
+<div id="myBookings"></div>
+</div>
 
 </div>
 
@@ -163,44 +86,31 @@ img {
 
 async function checkLogin() {
 
-  try {
+  const res = await fetch("/api/me", {
+    credentials: "include"
+  });
 
-    const res = await fetch("/api/me", {
-      credentials: "include"
-    });
+  if (!res.ok) return showGuest();
 
-    if (!res.ok) {
-      showGuest();
-      return;
-    }
+  const data = await res.json();
 
-    const data = await res.json();
+  if (!data.user) return showGuest();
 
-    if (!data.user) {
-      showGuest();
-      return;
-    }
+  document.getElementById("authSection").innerHTML = `
+    👤 ${data.user.username}
+    <a href="/logout">🚪 Logout</a>
+  `;
 
-    document.getElementById("authSection").innerHTML = `
-      👤 ${data.user.username}
-      <a href="/logout">🚪 Logout</a>
-    `;
-
-    loadMyBookings();
-
-  } catch (err) {
-    console.log(err);
-    showGuest();
-  }
+  loadMyBookings();
 }
 
 function showGuest() {
   document.getElementById("authSection").innerHTML =
-    `<a href="/login.html">🔑 Login</a>
-     <a href="/register.html">📝 Register</a>`;
+    `<a href="/login.html">Login</a>
+     <a href="/register.html">Register</a>`;
 }
 
-/* ================= LOAD SERVICES ================= */
+/* ================= SERVICES ================= */
 
 async function loadServices() {
 
@@ -209,25 +119,22 @@ async function loadServices() {
 
   const select = document.getElementById("serviceSelect");
 
-  select.innerHTML = "";
-
   services.forEach(s => {
-    const option = document.createElement("option");
-    option.value = s._id;
-    option.textContent = `${s.name} (${s.price} บาท)`;
-    select.appendChild(option);
+    const op = document.createElement("option");
+    op.value = s._id;
+    op.textContent = s.name;
+    select.appendChild(op);
   });
 
-  if (services.length > 0) {
-    document.getElementById("serviceId").value = services[0]._id;
-  }
-
-  select.addEventListener("change", () => {
+  select.onchange = () => {
     document.getElementById("serviceId").value = select.value;
-  });
+  };
+
+  if (services.length > 0)
+    document.getElementById("serviceId").value = services[0]._id;
 }
 
-/* ================= LOAD SLOTS ================= */
+/* ================= SLOTS ================= */
 
 async function loadSlots() {
 
@@ -236,29 +143,22 @@ async function loadSlots() {
 
   const select = document.getElementById("slotSelect");
 
-  select.innerHTML = "";
-
-  slots
-    .filter(s => s.status === "available")
-    .forEach(s => {
-
-      const option = document.createElement("option");
-      option.value = s._id;
-      option.textContent = `${s.date} - ${s.time}`;
-
-      select.appendChild(option);
-    });
-
-  if (slots.length > 0) {
-    document.getElementById("slotId").value = select.value;
-  }
-
-  select.addEventListener("change", () => {
-    document.getElementById("slotId").value = select.value;
+  slots.filter(s=>s.status==="available").forEach(s => {
+    const op = document.createElement("option");
+    op.value = s._id;
+    op.textContent = s.date + " " + s.time;
+    select.appendChild(op);
   });
+
+  select.onchange = () => {
+    document.getElementById("slotId").value = select.value;
+  };
+
+  if (select.value)
+    document.getElementById("slotId").value = select.value;
 }
 
-/* ================= MY BOOKINGS ================= */
+/* ================= BOOKINGS ================= */
 
 async function loadMyBookings() {
 
@@ -268,36 +168,22 @@ async function loadMyBookings() {
 
   if (!res.ok) return;
 
-  const bookings = await res.json();
+  const data = await res.json();
+  const box = document.getElementById("myBookings");
 
-  const div = document.getElementById("myBookings");
+  box.innerHTML = "";
 
-  div.innerHTML = "";
-
-  if (bookings.length === 0) {
-    div.innerHTML = "ไม่มีรายการจอง";
-    return;
-  }
-
-  bookings.forEach(b => {
-
-    const el = document.createElement("div");
-
-    el.innerHTML = `
-      <p>
+  data.forEach(b => {
+    box.innerHTML += `
+      <div>
         ${b.service} | ${b.date} ${b.time}
         <br>
-        สถานะ: ${b.status}
-        ${b.reason ? `<br>เหตุผล: ${b.reason}` : ""}
-        <br>
-        ${b.slip ? `<a href="${b.slip}" target="_blank">ดูสลิป</a>` : ""}
+        ${b.status}
         <br>
         <button onclick="deleteBooking('${b.id}')">ลบ</button>
-      </p>
+      </div>
       <hr>
     `;
-
-    div.appendChild(el);
   });
 }
 
@@ -307,9 +193,7 @@ async function deleteBooking(id) {
 
   await fetch("/api/delete-my-booking", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ id })
   });
@@ -319,9 +203,11 @@ async function deleteBooking(id) {
 
 /* ================= INIT ================= */
 
-checkLogin();
-loadServices();
-loadSlots();
+window.onload = () => {
+  checkLogin();
+  loadServices();
+  loadSlots();
+};
 
 </script>
 
