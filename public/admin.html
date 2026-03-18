@@ -350,15 +350,16 @@ loadCalendar()
 
 async function deleteSlot(id){
 
-await fetch("/admin/delete-slot",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-credentials:"include",
-body:JSON.stringify({id})
-})
+  console.log("delete slot:", id)
 
-loadCalendar()
+  await fetch("/admin/delete-slot",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    credentials:"include",
+    body:JSON.stringify({id})
+  })
 
+  loadCalendar()
 }
 
 /* BOOKINGS */
@@ -446,6 +447,7 @@ async function reject(id){
   })
 
   loadBookings()
+  loadCalendar() // 🔥 เพิ่มบรรทัดนี้
 }
 
 /* SERVICES */
@@ -465,7 +467,7 @@ serviceList.innerHTML += `
 
 ${s.name} - ${s.price} บาท
 
-<button onclick="deleteService('${s.id}')">
+<button onclick="deleteService('${s._id}')">
 Delete
 </button>
 

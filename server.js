@@ -256,17 +256,14 @@ app.post("/admin/add-slot", requireAdmin, async (req, res) => {
 })
 
 /* 🔥 DELETE SLOT */
+
 app.post("/admin/delete-slot", requireAdmin, async (req, res) => {
 
-  const used = await Booking.findOne({
-    slot: req.body.id,
-    status: { $ne: "rejected" }
-  })
+  console.log("DELETE SLOT:", req.body.id)
 
-  if (used)
-    return res.json({ error: "slot ถูกจองอยู่ ลบไม่ได้" })
-
+  await Booking.deleteMany({ slot: req.body.id })
   await Slot.findByIdAndDelete(req.body.id)
+
   res.json({ success: true })
 })
 
@@ -279,14 +276,19 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
 })
 
 /* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */
+/* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */
 app.post("/admin/update-booking", requireAdmin, async (req, res) => {
 
   const { id, status, reason } = req.body
+
   const booking = await Booking.findById(id)
 
   if (!booking) return res.status(404).json({ error: "not found" })
 
+  console.log("UPDATE:", id, status)
+
   if (status === "rejected") {
+    console.log("คืน slot:", booking.slot)
     await Slot.findByIdAndUpdate(booking.slot, { status: "available" })
   }
 
