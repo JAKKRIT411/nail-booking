@@ -398,10 +398,12 @@ ${b.status}
 
 ${b.status==="pending"?`
 
-<button onclick="approve('${b.id}')">Approve</button>
-<button onclick="reject('${b.id}')">Reject</button>
+<button onclick="approve('${b._id}')">Approve</button>
+<button onclick="reject('${b._id}')">Reject</button>
 
 `:""}
+
+
 
 </div>
 
@@ -425,17 +427,25 @@ loadBookings()
 
 async function reject(id){
 
-const reason = prompt("เหตุผล")
+  const reason = prompt("เหตุผล")
 
-await fetch("/admin/update-booking",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-credentials:"include",
-body:JSON.stringify({id,status:"rejected",reason})
-})
+  if(!reason){
+    alert("กรุณาใส่เหตุผล")
+    return
+  }
 
-loadBookings()
+  await fetch("/admin/update-booking",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    credentials:"include",
+    body:JSON.stringify({
+      id,
+      status:"rejected",
+      reason
+    })
+  })
 
+  loadBookings()
 }
 
 /* SERVICES */
