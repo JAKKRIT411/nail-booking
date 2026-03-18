@@ -282,6 +282,10 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
   })
 
   res.json({ success: true })
+  if(status === "rejected"){
+  await Booking.findByIdAndDelete(id)
+  return res.json({ success: true })
+}
 })
 
 app.get("/admin/revenue", requireAdmin, async (req, res) => {
