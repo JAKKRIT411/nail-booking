@@ -276,16 +276,32 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
 })
 
 app.post("/admin/update-booking", requireAdmin, async (req, res) => {
-  await Booking.findByIdAndUpdate(req.body.id, {
-    status: req.body.status,
-    reason: req.body.reason || null
+  const { id, status, reason } = req.body
+
+  const booking = await Booking.findById(id)
+
+  if(!booking) return res.status(404).json({error:"not found"})
+
+  // 🔥 ถ้า reject → คืน slot
+  if(status === "rejected"){
+    await Slot.findByIdAndUpdate(booking.slot, {
+      status: "available"
+    })
+  }
+
+  // 🔥 ถ้า approve → lock slot (กันพลาด)
+  if(status === "approved"){
+    await Slot.findByIdAndUpdate(booking.slot, {
+      status: "booked"
+    })
+  }
+
+  await Booking.findByIdAndUpdate(id, {
+    status,
+    reason: reason || null
   })
 
   res.json({ success: true })
-  if(status === "rejected"){
-  await Booking.findByIdAndDelete(id)
-  return res.json({ success: true })
-}
 })
 
 app.get("/admin/revenue", requireAdmin, async (req, res) => {
