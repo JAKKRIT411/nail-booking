@@ -271,8 +271,18 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
   const data = await Booking.find()
     .populate("service")
     .populate("slot")
+    .populate("user") // ✅ เพิ่มตรงนี้
 
-  res.json(data)
+  res.json(data.map(b => ({
+    id: b._id,
+    username: b.username,
+    email: b.user?.email, // ✅ เพิ่ม
+    service: b.service,
+    slot: b.slot,
+    status: b.status,
+    reason: b.reason,
+    slip: b.slip
+  })))
 })
 
 /* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */

@@ -379,9 +379,14 @@ bookingList.innerHTML += `
 
 <div class="card">
 
-<strong>${b.user}</strong><br>
+👤 ${b.username}
+<br>
+📧 ${blurEmail(b.email)}
 
-${b.service?.name} (${b.service?.price}฿)
+<br><br>
+
+💅 ${b.service?.name} (${b.service?.price}฿)
+<br>
 📅 ${b.slot?.date} ⏰ ${b.slot?.time}
 
 ${b.slip ? `<img src="${b.slip}" onclick="window.open('${b.slip}')">` : ""}
@@ -398,16 +403,11 @@ ${b.status}
 <br><br>
 
 ${b.status==="pending"?`
-
-<button onclick="approve('${b._id}')">Approve</button>
-<button onclick="reject('${b._id}')">Reject</button>
-
+<button onclick="approve('${b.id}')">Approve</button>
+<button onclick="reject('${b.id}')">Reject</button>
 `:""}
 
-
-
 </div>
-
 `
 
 })
@@ -509,6 +509,11 @@ body:JSON.stringify({id})
 
 loadServices()
 
+}
+function blurEmail(email){
+  if(!email) return ""
+  const [name, domain] = email.split("@")
+  return name.slice(0,2) + "***@" + domain
 }
 
 /* START */
