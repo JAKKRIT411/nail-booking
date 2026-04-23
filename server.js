@@ -125,18 +125,32 @@ await createAdmin()
 
 /* ================= AUTH ================= */
 
+// BUG FIX: Added server-side validation for register
 app.post("/register", async (req, res) => {
-  const hash = await bcrypt.hash(req.body.password, 10)
-  await User.create({ ...req.body, password: hash })
+  const { username, email, phone, password } = req.body
+
+  // Server-side password validation
+  if (!password || password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+    return res.send("รหัสผ่านต้องมีอย่างน้อย 8 ตัว มีตัวพิมพ์ใหญ่และตัวเลข")
+  }
+
+  // Check duplicate username/email
+  const existing = await User.findOne({ $or: [{ username }, { email }] })
+  if (existing) {
+    return res.send("Username หรือ Email นี้ถูกใช้แล้ว")
+  }
+
+  const hash = await bcrypt.hash(password, 10)
+  await User.create({ username, email, phone, password: hash })
   res.redirect("/login.html")
 })
 
 app.post("/login", async (req, res) => {
   const user = await User.findOne({ username: req.body.username })
-  if (!user) return res.send("user not found")
+  if (!user) return res.send("ไม่พบผู้ใช้งาน")
 
   const ok = await bcrypt.compare(req.body.password, user.password)
-  if (!ok) return res.send("wrong password")
+  if (!ok) return res.send("รหัสผ่านไม่ถูกต้อง")
 
   req.session.user = {
     id: user._id,
@@ -174,9 +188,8 @@ app.get("/api/slots", async (req, res) => {
   res.json(await Slot.find())
 })
 
-/* 🔥 USER BOOKINGS (ซ่อน rejected) */
+/* USER BOOKINGS (hide rejected) */
 app.get("/api/my-bookings", requireLogin, async (req, res) => {
-
   const bookings = await Booking.find({
     user: req.session.user.id,
     status: { $ne: "rejected" }
@@ -196,9 +209,8 @@ app.get("/api/my-bookings", requireLogin, async (req, res) => {
   })))
 })
 
-/* 🔥 USER DELETE → คืน slot */
+/* USER DELETE → คืน slot */
 app.post("/api/delete-my-booking", requireLogin, async (req, res) => {
-
   const booking = await Booking.findOne({
     _id: req.body.id,
     user: req.session.user.id
@@ -215,8 +227,12 @@ app.post("/api/delete-my-booking", requireLogin, async (req, res) => {
 /* ================= BOOK ================= */
 
 app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
-
   const { serviceId, slotId } = req.body
+
+  // BUG FIX: validate serviceId and slotId exist
+  if (!serviceId || !slotId) {
+    return res.send("กรุณาเลือกบริการและเวลา")
+  }
 
   const slot = await Slot.findOneAndUpdate(
     { _id: slotId, status: "available" },
@@ -224,7 +240,7 @@ app.post("/book", requireLogin, upload.single("slip"), async (req, res) => {
     { new: true }
   )
 
-  if (!slot) return res.send("slot already booked")
+  if (!slot) return res.send("คิวนี้ถูกจองแล้ว กรุณาเลือกเวลาอื่น")
 
   await Booking.create({
     user: req.session.user.id,
@@ -249,18 +265,14 @@ app.get("/admin/all-slots", requireAdmin, async (req, res) => {
 
 app.post("/admin/add-slot", requireAdmin, async (req, res) => {
   const exist = await Slot.findOne(req.body)
-  if (exist) return res.json({ error: "slot exists" })
+  if (exist) return res.json({ error: "slot นี้มีอยู่แล้ว" })
 
   await Slot.create(req.body)
   res.json({ success: true })
 })
 
-/* 🔥 DELETE SLOT */
-
+/* DELETE SLOT */
 app.post("/admin/delete-slot", requireAdmin, async (req, res) => {
-
-  console.log("DELETE SLOT:", req.body.id)
-
   await Booking.deleteMany({ slot: req.body.id })
   await Slot.findByIdAndDelete(req.body.id)
 
@@ -271,12 +283,12 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
   const data = await Booking.find()
     .populate("service")
     .populate("slot")
-    .populate("user") // ✅ เพิ่มตรงนี้
+    .populate("user")
 
   res.json(data.map(b => ({
     id: b._id,
     username: b.username,
-    email: b.user?.email, // ✅ เพิ่ม
+    email: b.user?.email,
     service: b.service,
     slot: b.slot,
     status: b.status,
@@ -285,20 +297,31 @@ app.get("/admin/bookings", requireAdmin, async (req, res) => {
   })))
 })
 
-/* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */
-/* 🔥 UPDATE BOOKING (คืน slot เมื่อ reject) */
-app.post("/admin/update-booking", requireAdmin, async (req, res) => {
+// BUG FIX: Added missing /admin/revenue route (was causing Dashboard to crash)
+app.get("/admin/revenue", requireAdmin, async (req, res) => {
+  const bookings = await Booking.find({ status: "approved" }).populate("service")
 
+  const revenueByDate = {}
+
+  bookings.forEach(b => {
+    if (!b.service) return
+    // Group by service name
+    const key = b.service.name
+    revenueByDate[key] = (revenueByDate[key] || 0) + (b.service.price || 0)
+  })
+
+  res.json(revenueByDate)
+})
+
+/* UPDATE BOOKING (คืน slot เมื่อ reject) */
+app.post("/admin/update-booking", requireAdmin, async (req, res) => {
   const { id, status, reason } = req.body
 
   const booking = await Booking.findById(id)
 
   if (!booking) return res.status(404).json({ error: "not found" })
 
-  console.log("UPDATE:", id, status)
-
   if (status === "rejected") {
-    console.log("คืน slot:", booking.slot)
     await Slot.findByIdAndUpdate(booking.slot, { status: "available" })
   }
 
@@ -314,9 +337,8 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
   res.json({ success: true })
 })
 
-/* 🔥 DELETE SERVICE */
+/* DELETE SERVICE */
 app.post("/admin/delete-service", requireAdmin, async (req, res) => {
-
   const used = await Booking.findOne({
     service: req.body.id,
     status: { $ne: "rejected" }
