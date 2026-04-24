@@ -2,32 +2,821 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Nail Booking</title>
-</head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMI NAILS — จองคิวทำเล็บ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0e0d0d;--surface:#181716;--card:#201f1e;--border:#2e2b29;
+  --gold:#c9a96e;--gold2:#e8c98a;--text:#f0ede8;--muted:#8a8480;
+  --green:#4caf7d;--red:#e05c5c;--orange:#e8a44a;
+  --r:14px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
 
+/* TOPBAR */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:60px;
+  background:rgba(14,13,13,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.logo{font-family:'Cormorant Garamond',serif;font-size:22px;letter-spacing:3px;color:var(--gold);text-decoration:none}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.wallet-chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:999px;padding:5px 14px;font-size:13px;cursor:pointer;
+  transition:.2s
+}
+.wallet-chip:hover{border-color:var(--gold)}
+.wallet-chip .amt{color:var(--gold);font-weight:500}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:8px;padding:7px 14px;cursor:pointer;font-size:13px;transition:.2s;font-family:inherit}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-gold{background:var(--gold);color:#1a1610;border:none;
+  border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:500;
+  font-family:inherit;transition:.2s}
+.btn-gold:hover{background:var(--gold2)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--card);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:13px;cursor:pointer;color:var(--gold)}
+
+/* HERO */
+.hero{
+  padding:130px 28px 60px;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%, rgba(201,169,110,.12) 0%, transparent 70%),
+    var(--bg);
+  text-align:center;
+}
+.hero-label{font-size:11px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:16px}
+.hero h1{font-family:'Cormorant Garamond',serif;font-size:clamp(40px,7vw,72px);font-weight:400;line-height:1.1;margin-bottom:16px}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero p{color:var(--muted);font-size:16px;max-width:420px;margin:0 auto 36px}
+
+/* SECTION */
+.section{padding:0 28px 60px;max-width:1100px;margin:0 auto}
+.section-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:28px;font-weight:400;
+  margin-bottom:24px;
+  display:flex;align-items:center;gap:12px;
+}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* SERVICES GRID */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-bottom:8px}
+.service-card{
+  background:var(--card);border:2px solid var(--border);border-radius:var(--r);
+  padding:22px 20px;cursor:pointer;transition:.25s;position:relative;overflow:hidden;
+}
+.service-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,169,110,.1),transparent);
+  opacity:0;transition:.25s;
+}
+.service-card:hover{border-color:var(--gold);transform:translateY(-2px)}
+.service-card:hover::before{opacity:1}
+.service-card.selected{border-color:var(--gold);background:#221f18}
+.service-card.selected::before{opacity:1}
+.service-name{font-size:16px;font-weight:500;margin-bottom:6px}
+.service-desc{color:var(--muted);font-size:13px;margin-bottom:14px;min-height:36px}
+.service-meta{display:flex;justify-content:space-between;align-items:center}
+.service-price{color:var(--gold);font-size:20px;font-family:'Cormorant Garamond',serif}
+.service-dur{color:var(--muted);font-size:12px}
+.check-badge{
+  position:absolute;top:14px;right:14px;
+  width:22px;height:22px;border-radius:50%;
+  background:var(--gold);color:#1a1610;
+  display:none;align-items:center;justify-content:center;font-size:12px;
+}
+.service-card.selected .check-badge{display:flex}
+
+/* DATE STRIP */
+.date-strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;margin-bottom:20px;scrollbar-width:none}
+.date-strip::-webkit-scrollbar{display:none}
+.date-btn{
+  flex-shrink:0;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:10px 18px;cursor:pointer;transition:.2s;text-align:center;
+  min-width:70px;
+}
+.date-btn:hover{border-color:var(--gold)}
+.date-btn.active{border-color:var(--gold);background:#221f18}
+.date-day{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.date-num{font-size:22px;font-family:'Cormorant Garamond',serif;line-height:1.2}
+
+/* SLOT GRID */
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.slot-btn{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 8px;cursor:pointer;transition:.2s;text-align:center;font-family:inherit;
+  color:var(--text);font-size:14px;
+}
+.slot-btn:hover{border-color:var(--gold)}
+.slot-btn.selected{border-color:var(--gold);background:#221f18;color:var(--gold)}
+.slot-btn:disabled{opacity:.35;cursor:not-allowed}
+.no-slots{color:var(--muted);padding:20px 0;text-align:center}
+
+/* BOOKING PANEL */
+.book-panel{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px;
+}
+.pay-tabs{display:flex;gap:10px;margin-bottom:20px}
+.pay-tab{
+  flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;transition:.2s;text-align:center;
+  font-family:inherit;color:var(--muted);font-size:14px;
+}
+.pay-tab.active{border-color:var(--gold);background:#221f18;color:var(--gold)}
+.wallet-info{
+  background:var(--surface);border-radius:10px;padding:14px 16px;
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;border:1px solid var(--border);
+}
+.wallet-bal{font-size:24px;font-family:'Cormorant Garamond',serif;color:var(--gold)}
+.upload-area{
+  border:2px dashed var(--border);border-radius:10px;padding:30px;
+  text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px;
+  position:relative;
+}
+.upload-area:hover{border-color:var(--gold)}
+.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-area.has-file{border-color:var(--green);border-style:solid}
+.upload-icon{font-size:28px;margin-bottom:8px}
+.upload-text{color:var(--muted);font-size:13px}
+.note-input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;color:var(--text);font-family:inherit;
+  font-size:14px;resize:none;outline:none;transition:.2s;
+}
+.note-input:focus{border-color:var(--gold)}
+.book-summary{
+  background:var(--surface);border-radius:10px;padding:16px;
+  margin-bottom:16px;border:1px solid var(--border);
+}
+.sum-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.sum-row:last-child{margin:0;font-weight:500;font-size:15px;color:var(--gold)}
+.btn-book{
+  width:100%;padding:14px;background:var(--gold);color:#1a1610;
+  border:none;border-radius:10px;font-size:15px;font-weight:500;
+  font-family:inherit;cursor:pointer;transition:.2s;
+}
+.btn-book:hover{background:var(--gold2)}
+.btn-book:disabled{opacity:.4;cursor:not-allowed}
+
+/* MY BOOKINGS */
+.booking-list{display:flex;flex-direction:column;gap:12px}
+.booking-item{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;display:flex;align-items:center;gap:16px;
+}
+.booking-item:hover{border-color:#3e3a37}
+.booking-num{
+  width:44px;height:44px;border-radius:10px;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--gold);
+  flex-shrink:0;border:1px solid var(--border);
+}
+.booking-info{flex:1}
+.booking-service{font-size:15px;font-weight:500;margin-bottom:3px}
+.booking-meta{color:var(--muted);font-size:13px}
+.booking-right{text-align:right;flex-shrink:0}
+.booking-price{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold)}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:999px;font-weight:500;letter-spacing:.5px}
+.badge.pending{background:rgba(232,164,74,.15);color:var(--orange)}
+.badge.approved{background:rgba(76,175,125,.15);color:var(--green)}
+.badge.rejected{background:rgba(224,92,92,.15);color:var(--red)}
+.badge.cancelled{background:rgba(138,132,128,.15);color:var(--muted)}
+.btn-cancel{
+  background:none;border:1px solid var(--border);color:var(--muted);
+  border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;
+  font-family:inherit;margin-top:6px;transition:.2s;
+}
+.btn-cancel:hover{border-color:var(--red);color:var(--red)}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:.4}
+
+/* TOPUP MODAL */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-bg.open{display:flex}
+.modal{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:32px;max-width:440px;width:100%;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:26px;margin-bottom:6px}
+.modal-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+.form-label{font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input{
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:11px 14px;color:var(--text);font-family:inherit;
+  font-size:15px;outline:none;transition:.2s;margin-bottom:16px;
+}
+.form-input:focus{border-color:var(--gold)}
+.modal-footer{display:flex;gap:10px;margin-top:8px}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:12px 18px;font-size:14px;min-width:220px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  animation:fadeInUp .3s ease;
+}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+@keyframes fadeInUp{from{transform:translateY(12px);opacity:0}to{opacity:1;transform:none}}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--surface);border-radius:10px;padding:4px;margin-bottom:28px}
+.tab{flex:1;padding:9px;border-radius:7px;text-align:center;cursor:pointer;
+  font-size:14px;color:var(--muted);transition:.2s;border:none;background:none;font-family:inherit}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+/* TOPUP HISTORY */
+.topup-list{display:flex;flex-direction:column;gap:10px}
+.topup-item{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px 18px;display:flex;justify-content:space-between;align-items:center;
+}
+.topup-amt{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--green)}
+
+/* ACCOUNT PANEL */
+.profile-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px;text-align:center;margin-bottom:16px;
+}
+.profile-avatar{
+  width:72px;height:72px;border-radius:50%;background:var(--surface);
+  border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
+  font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gold);
+  margin:0 auto 12px;
+}
+.profile-name{font-size:20px;font-weight:500;margin-bottom:4px}
+.profile-email{color:var(--muted);font-size:13px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.stat-box{background:var(--surface);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--border)}
+.stat-val{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--gold)}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* VIEWS */
+.view{display:none}
+.view.active{display:block}
+
+/* MOBILE NAV */
+.mobile-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(20,18,18,.95);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);
+  padding:8px 16px 20px;
+  display:flex;justify-content:space-around;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:11px;font-family:inherit;padding:6px 12px;border-radius:8px;transition:.2s;
+}
+.nav-item.active{color:var(--gold)}
+.nav-icon{font-size:22px;line-height:1}
+.pb-nav{padding-bottom:80px}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:32px 0}
+
+@media(max-width:680px){
+  .topbar{padding:0 16px}
+  .section{padding:0 16px 80px}
+  .hero{padding:100px 16px 40px}
+  .services-grid{grid-template-columns:1fr 1fr}
+  .booking-item{flex-wrap:wrap}
+  .booking-right{text-align:left;width:100%}
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+  .modal{padding:24px}
+}
+</style>
+</head>
 <body>
 
-<h1>💅 ร้านทำเล็บ</h1>
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="/" class="logo">LUMI</a>
+  <div class="topbar-right" id="topbarRight">
+    <a href="/login.html" class="btn-ghost" id="btnLogin">เข้าสู่ระบบ</a>
+    <a href="/register.html" class="btn-gold" id="btnReg">สมัครสมาชิก</a>
+  </div>
+</div>
 
-<div id="authSection"></div>
+<!-- HERO -->
+<div class="hero" id="heroSection">
+  <div class="hero-label">Premium Nail Studio</div>
+  <h1>ความสวยงามที่<br><em>คุณสมควรได้รับ</em></h1>
+  <p>จองคิวทำเล็บออนไลน์ เลือกบริการ เลือกเวลา เสร็จใน 1 นาที</p>
+  <button class="btn-gold" onclick="document.getElementById('bookView').scrollIntoView({behavior:'smooth'})">จองคิวเลย</button>
+</div>
 
-<h2>บริการ</h2>
-<select id="serviceSelect"></select>
+<!-- MAIN CONTENT -->
+<div class="section pb-nav" id="mainSection" style="display:none">
 
-<h2>เวลา</h2>
-<select id="slotSelect"></select>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showView('book')">จองคิว</button>
+    <button class="tab" onclick="showView('mybook')">การจองของฉัน</button>
+    <button class="tab" onclick="showView('wallet')">กระเป๋าเงิน</button>
+    <button class="tab" onclick="showView('account')">บัญชี</button>
+  </div>
 
-<h2>จอง</h2>
-<form action="/book" method="POST" enctype="multipart/form-data">
-  <input type="hidden" name="serviceId" id="serviceId">
-  <input type="hidden" name="slotId" id="slotId">
-  <input type="file" name="slip" required>
-  <button>จอง</button>
-</form>
+  <!-- BOOK VIEW -->
+  <div class="view active" id="bookView">
+    <div class="section-title">เลือกบริการ</div>
+    <div class="services-grid" id="serviceGrid"></div>
 
-<h2>รายการของฉัน</h2>
-<div id="myBookings"></div>
+    <div class="divider"></div>
+    <div class="section-title">เลือกวันที่</div>
+    <div class="date-strip" id="dateStrip"></div>
 
-<script src="/js/main.js"></script>
+    <div class="section-title">เลือกเวลา</div>
+    <div class="slot-grid" id="slotGrid"></div>
+
+    <div class="divider"></div>
+    <div class="section-title">รายละเอียดการจอง</div>
+    <div class="book-panel">
+      <div class="pay-tabs">
+        <button class="pay-tab active" onclick="setPayment('slip')">💳 โอนเงิน + สลิป</button>
+        <button class="pay-tab" onclick="setPayment('wallet')">👛 กระเป๋าเงิน</button>
+      </div>
+
+      <div id="walletPayInfo" style="display:none">
+        <div class="wallet-info">
+          <span style="color:var(--muted);font-size:13px">ยอดเงินคงเหลือ</span>
+          <span class="wallet-bal" id="walletBalBook">0 ฿</span>
+        </div>
+      </div>
+
+      <div id="slipUploadArea">
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('slipFile').click()">
+          <input type="file" id="slipFile" accept="image/*" onchange="onSlipChange(this)">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text" id="uploadText">คลิกเพื่ออัปโหลดสลิปการโอนเงิน<br><span style="font-size:11px">JPG, PNG ขนาดไม่เกิน 10MB</span></div>
+        </div>
+      </div>
+
+      <label class="form-label">หมายเหตุ (ถ้ามี)</label>
+      <textarea class="note-input" id="noteInput" rows="2" placeholder="แจ้งพนักงานเพิ่มเติม เช่น แพ้สี ต้องการลาย..."></textarea>
+
+      <div style="height:16px"></div>
+      <div class="book-summary" id="bookSummary">
+        <div class="sum-row"><span style="color:var(--muted)">บริการ</span><span id="sumService">—</span></div>
+        <div class="sum-row"><span style="color:var(--muted)">วันที่</span><span id="sumDate">—</span></div>
+        <div class="sum-row"><span style="color:var(--muted)">เวลา</span><span id="sumTime">—</span></div>
+        <div class="sum-row"><span style="color:var(--muted)">ระยะเวลา</span><span id="sumDuration">—</span></div>
+        <div style="height:8px;border-top:1px solid var(--border);margin:10px 0 8px"></div>
+        <div class="sum-row"><span>ราคารวม</span><span id="sumPrice">0 ฿</span></div>
+      </div>
+
+      <button class="btn-book" id="btnBook" onclick="submitBooking()">ยืนยันการจอง</button>
+    </div>
+  </div>
+
+  <!-- MY BOOKINGS VIEW -->
+  <div class="view" id="mybookView">
+    <div class="section-title">การจองของฉัน</div>
+    <div id="bookingList"></div>
+  </div>
+
+  <!-- WALLET VIEW -->
+  <div class="view" id="walletView">
+    <div class="section-title">กระเป๋าเงิน</div>
+    <div style="background:linear-gradient(135deg,#221f18,#2a2519);border:1px solid #3d3722;border-radius:var(--r);padding:32px;text-align:center;margin-bottom:24px">
+      <div style="font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">ยอดเงินคงเหลือ</div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:56px;color:var(--gold);line-height:1" id="walletBal">0</div>
+      <div style="color:var(--muted);font-size:14px;margin-top:4px">บาท</div>
+      <button class="btn-gold" style="margin-top:20px;padding:10px 28px" onclick="openTopup()">+ เติมเงิน</button>
+    </div>
+    <div class="section-title" style="font-size:20px">ประวัติการเติมเงิน</div>
+    <div class="topup-list" id="topupList"></div>
+  </div>
+
+  <!-- ACCOUNT VIEW -->
+  <div class="view" id="accountView">
+    <div class="section-title">บัญชีของฉัน</div>
+    <div class="profile-card">
+      <div class="profile-avatar" id="profileAvatar">?</div>
+      <div class="profile-name" id="profileName">—</div>
+      <div class="profile-email" id="profileEmail">—</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" id="statTotal">0</div><div class="stat-lbl">การจองทั้งหมด</div></div>
+        <div class="stat-box"><div class="stat-val" id="statApproved">0</div><div class="stat-lbl">อนุมัติแล้ว</div></div>
+        <div class="stat-box"><div class="stat-val" id="statBal">0</div><div class="stat-lbl">ยอดเงิน (฿)</div></div>
+      </div>
+    </div>
+    <button class="btn-ghost" style="width:100%;padding:12px;color:var(--red);border-color:var(--red)" onclick="logout()">ออกจากระบบ</button>
+  </div>
+
+</div>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav" id="mobileNav" style="display:none">
+  <button class="nav-item active" onclick="showView('book')"><span class="nav-icon">✦</span>จองคิว</button>
+  <button class="nav-item" onclick="showView('mybook')"><span class="nav-icon">📋</span>การจอง</button>
+  <button class="nav-item" onclick="showView('wallet')"><span class="nav-icon">👛</span>กระเป๋า</button>
+  <button class="nav-item" onclick="showView('account')"><span class="nav-icon">👤</span>บัญชี</button>
+</div>
+
+<!-- TOPUP MODAL -->
+<div class="modal-bg" id="topupModal">
+  <div class="modal">
+    <div class="modal-title">เติมเงิน</div>
+    <div class="modal-sub">โอนเงินแล้วแนบสลิป — ยอดจะเข้าหลังแอดมินตรวจสอบ</div>
+
+    <label class="form-label">จำนวนเงิน (บาท)</label>
+    <input class="form-input" type="number" id="topupAmount" placeholder="เช่น 500" min="50" max="50000">
+
+    <label class="form-label">สลิปการโอนเงิน</label>
+    <div class="upload-area" id="topupUploadArea" onclick="document.getElementById('topupFile').click()" style="margin-bottom:16px">
+      <input type="file" id="topupFile" accept="image/*" onchange="onTopupFileChange(this)">
+      <div class="upload-icon">📎</div>
+      <div class="upload-text" id="topupUploadText">คลิกเพื่ออัปโหลดสลิป</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-ghost" style="flex:1" onclick="closeTopup()">ยกเลิก</button>
+      <button class="btn-gold" style="flex:2;border-radius:8px;padding:10px" onclick="submitTopup()">ส่งสลิป</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+/* ============================
+   STATE
+============================ */
+let state = {
+  user: null, profile: null, services: [], dates: [], slots: [],
+  selectedService: null, selectedDate: null, selectedSlot: null,
+  paymentMethod: 'slip', myBookings: [], topups: []
+}
+
+/* ============================
+   INIT
+============================ */
+async function init(){
+  const me = await api('/api/me')
+  if(!me.user){ showGuest(); return }
+  state.user = me.user
+  showLoggedIn()
+  await Promise.all([loadProfile(), loadServices(), loadDates()])
+}
+
+function showGuest(){
+  document.getElementById('heroSection').style.display='block'
+  document.getElementById('mainSection').style.display='none'
+}
+
+function showLoggedIn(){
+  document.getElementById('heroSection').style.display='none'
+  document.getElementById('mainSection').style.display='block'
+  document.getElementById('mobileNav').style.display='flex'
+  // topbar
+  const tr = document.getElementById('topbarRight')
+  tr.innerHTML=`
+    <div class="wallet-chip" onclick="showView('wallet')">
+      👛 <span class="amt" id="topbarBal">0 ฿</span>
+    </div>
+    <div class="avatar" onclick="showView('account')">${state.user.username[0].toUpperCase()}</div>
+  `
+}
+
+/* ============================
+   VIEW SWITCHER
+============================ */
+const viewMap = {book:'bookView',mybook:'mybookView',wallet:'walletView',account:'accountView'}
+const navItems = document.querySelectorAll('.nav-item')
+const tabs = document.querySelectorAll('.tab')
+
+function showView(v){
+  Object.values(viewMap).forEach(id=>document.getElementById(id).classList.remove('active'))
+  document.getElementById(viewMap[v]).classList.add('active')
+  tabs.forEach((t,i)=>t.classList.toggle('active',i===['book','mybook','wallet','account'].indexOf(v)))
+  navItems.forEach((n,i)=>n.classList.toggle('active',i===['book','mybook','wallet','account'].indexOf(v)))
+  if(v==='mybook') loadMyBookings()
+  if(v==='wallet'){ loadTopups(); updateWalletDisplay() }
+  if(v==='account') loadAccount()
+}
+
+/* ============================
+   SERVICES
+============================ */
+async function loadServices(){
+  state.services = await api('/api/services')
+  const grid = document.getElementById('serviceGrid')
+  grid.innerHTML = state.services.map(s=>`
+    <div class="service-card" onclick="selectService('${s._id}')" id="svc_${s._id}">
+      <div class="check-badge">✓</div>
+      <div class="service-name">${s.name}</div>
+      <div class="service-desc">${s.description||'บริการคุณภาพสูง'}</div>
+      <div class="service-meta">
+        <span class="service-price">${s.price.toLocaleString()} ฿</span>
+        <span class="service-dur">${s.duration} นาที</span>
+      </div>
+    </div>
+  `).join('')
+}
+
+function selectService(id){
+  state.selectedService = state.services.find(s=>s._id===id)
+  document.querySelectorAll('.service-card').forEach(c=>c.classList.remove('selected'))
+  document.getElementById('svc_'+id).classList.add('selected')
+  updateSummary()
+}
+
+/* ============================
+   DATES
+============================ */
+async function loadDates(){
+  state.dates = await api('/api/available-dates')
+  const strip = document.getElementById('dateStrip')
+  if(!state.dates.length){ strip.innerHTML='<div class="no-slots">ไม่มีวันที่ว่าง</div>'; return }
+  const days=['อา','จ','อ','พ','พฤ','ศ','ส']
+  strip.innerHTML = state.dates.map(d=>{
+    const dt=new Date(d); const wd=days[dt.getDay()]; const num=dt.getDate()
+    return `<div class="date-btn" onclick="selectDate('${d}')" id="date_${d}">
+      <div class="date-day">${wd}</div>
+      <div class="date-num">${num}</div>
+    </div>`
+  }).join('')
+}
+
+async function selectDate(date){
+  state.selectedDate = date; state.selectedSlot = null
+  document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('date_'+date)?.classList.add('active')
+  const slots = await api('/api/slots?date='+date)
+  state.slots = slots
+  const grid = document.getElementById('slotGrid')
+  if(!slots.length){ grid.innerHTML='<div class="no-slots">ไม่มีเวลาว่างในวันนี้</div>'; return }
+  grid.innerHTML = slots.map(s=>`
+    <button class="slot-btn" onclick="selectSlot('${s._id}','${s.time}')" id="slot_${s._id}">${s.time}</button>
+  `).join('')
+  updateSummary()
+}
+
+function selectSlot(id, time){
+  state.selectedSlot = {_id:id, time}
+  document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('selected'))
+  document.getElementById('slot_'+id)?.classList.add('selected')
+  updateSummary()
+}
+
+/* ============================
+   PAYMENT
+============================ */
+function setPayment(type){
+  state.paymentMethod = type
+  document.querySelectorAll('.pay-tab').forEach((t,i)=>t.classList.toggle('active',i===(type==='slip'?0:1)))
+  document.getElementById('slipUploadArea').style.display = type==='slip'?'block':'none'
+  document.getElementById('walletPayInfo').style.display = type==='wallet'?'block':'none'
+  if(type==='wallet' && state.profile)
+    document.getElementById('walletBalBook').textContent = state.profile.balance.toLocaleString()+' ฿'
+}
+
+function onSlipChange(input){
+  const area = document.getElementById('uploadArea')
+  const txt = document.getElementById('uploadText')
+  if(input.files[0]){
+    area.classList.add('has-file')
+    txt.textContent = '✓ '+input.files[0].name
+  }
+}
+
+/* ============================
+   SUMMARY
+============================ */
+function updateSummary(){
+  document.getElementById('sumService').textContent = state.selectedService?.name||'—'
+  document.getElementById('sumDate').textContent = state.selectedDate||'—'
+  document.getElementById('sumTime').textContent = state.selectedSlot?.time||'—'
+  document.getElementById('sumDuration').textContent = state.selectedService ? state.selectedService.duration+' นาที':'—'
+  document.getElementById('sumPrice').textContent = state.selectedService ? state.selectedService.price.toLocaleString()+' ฿':'0 ฿'
+}
+
+/* ============================
+   SUBMIT BOOKING
+============================ */
+async function submitBooking(){
+  if(!state.selectedService) return toast('กรุณาเลือกบริการ','error')
+  if(!state.selectedDate) return toast('กรุณาเลือกวันที่','error')
+  if(!state.selectedSlot) return toast('กรุณาเลือกเวลา','error')
+  if(state.paymentMethod==='slip' && !document.getElementById('slipFile').files[0])
+    return toast('กรุณาแนบสลิปการโอนเงิน','error')
+
+  const btn = document.getElementById('btnBook')
+  btn.disabled=true; btn.textContent='กำลังจอง...'
+
+  try{
+    const fd = new FormData()
+    fd.append('serviceId', state.selectedService._id)
+    fd.append('slotId', state.selectedSlot._id)
+    fd.append('paymentMethod', state.paymentMethod)
+    fd.append('note', document.getElementById('noteInput').value)
+    if(state.paymentMethod==='slip') fd.append('slip', document.getElementById('slipFile').files[0])
+
+    const r = await fetch('/api/book',{method:'POST',body:fd})
+    const d = await r.json()
+    if(!r.ok) throw new Error(d.error)
+
+    toast('จองสำเร็จ! เลขคิว #'+d.queueNumber,'success')
+    // reset
+    state.selectedService=null; state.selectedSlot=null
+    document.querySelectorAll('.service-card').forEach(c=>c.classList.remove('selected'))
+    document.querySelectorAll('.slot-btn').forEach(b=>b.classList.remove('selected'))
+    document.getElementById('slipFile').value=''
+    document.getElementById('uploadArea').classList.remove('has-file')
+    document.getElementById('uploadText').innerHTML='คลิกเพื่ออัปโหลดสลิปการโอนเงิน<br><span style="font-size:11px">JPG, PNG ขนาดไม่เกิน 10MB</span>'
+    document.getElementById('noteInput').value=''
+    updateSummary()
+    await loadDates()
+    await loadProfile()
+    setTimeout(()=>showView('mybook'),1200)
+  }catch(e){
+    toast(e.message,'error')
+  }finally{
+    btn.disabled=false; btn.textContent='ยืนยันการจอง'
+  }
+}
+
+/* ============================
+   MY BOOKINGS
+============================ */
+async function loadMyBookings(){
+  const list = document.getElementById('bookingList')
+  list.innerHTML='<div class="empty-state"><div class="icon">⏳</div>กำลังโหลด...</div>'
+  state.myBookings = await api('/api/my-bookings')
+  if(!state.myBookings.length){
+    list.innerHTML='<div class="empty-state"><div class="icon">📋</div><div>ยังไม่มีการจอง</div></div>'
+    return
+  }
+  list.innerHTML='<div class="booking-list">'+state.myBookings.map(b=>`
+    <div class="booking-item">
+      <div class="booking-num">#${b.queueNumber||'-'}</div>
+      <div class="booking-info">
+        <div class="booking-service">${b.service||'—'}</div>
+        <div class="booking-meta">📅 ${b.date||'—'} &nbsp;⏰ ${b.time||'—'} &nbsp;· ${b.duration||60} นาที</div>
+        <div class="booking-meta" style="margin-top:3px">
+          ${b.paymentMethod==='wallet'?'👛 จ่ายด้วยกระเป๋าเงิน':'💳 โอนเงิน'}
+          ${b.note?` · 📝 ${b.note}`:''}
+        </div>
+        <div style="margin-top:8px">
+          <span class="badge ${b.status}">${statusTH(b.status)}</span>
+          ${b.reason?`<span style="color:var(--muted);font-size:12px;margin-left:8px">${b.reason}</span>`:''}
+        </div>
+        ${b.status==='pending'?`<button class="btn-cancel" onclick="cancelBooking('${b.id}')">ยกเลิกการจอง</button>`:''}
+      </div>
+      <div class="booking-right">
+        <div class="booking-price">${(b.price||0).toLocaleString()} ฿</div>
+        ${b.slip?`<img src="${b.slip}" style="width:48px;height:48px;border-radius:6px;object-fit:cover;margin-top:6px;cursor:pointer" onclick="window.open('${b.slip}')">`: ''}
+      </div>
+    </div>
+  `).join('')+'</div>'
+}
+
+async function cancelBooking(id){
+  if(!confirm('ยืนยันการยกเลิกการจอง?')) return
+  const r = await fetch('/api/cancel-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+  const d = await r.json()
+  if(!r.ok) return toast(d.error,'error')
+  toast('ยกเลิกการจองแล้ว','success')
+  loadMyBookings(); loadDates(); loadProfile()
+}
+
+/* ============================
+   WALLET
+============================ */
+async function loadTopups(){
+  state.topups = await api('/api/my-topups')
+  const list = document.getElementById('topupList')
+  if(!state.topups.length){
+    list.innerHTML='<div class="empty-state" style="padding:24px 0"><div class="icon">💳</div>ยังไม่มีประวัติการเติมเงิน</div>'
+    return
+  }
+  list.innerHTML = state.topups.map(t=>`
+    <div class="topup-item">
+      <div>
+        <div class="topup-amt">+${t.amount.toLocaleString()} ฿</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">${new Date(t.createdAt).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="text-align:right">
+        <span class="badge ${t.status}">${t.status==='approved'?'✓ เติมสำเร็จ':t.status==='rejected'?'✕ ไม่อนุมัติ':'⏳ รอตรวจสอบ'}</span>
+        ${t.slip?`<div style="margin-top:6px"><img src="${t.slip}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;cursor:pointer" onclick="window.open('${t.slip}')"></div>`:''}
+      </div>
+    </div>
+  `).join('')
+}
+
+function updateWalletDisplay(){
+  const bal = state.profile?.balance||0
+  document.getElementById('walletBal').textContent = bal.toLocaleString()
+  document.getElementById('topbarBal').textContent = bal.toLocaleString()+' ฿'
+}
+
+function openTopup(){ document.getElementById('topupModal').classList.add('open') }
+function closeTopup(){
+  document.getElementById('topupModal').classList.remove('open')
+  document.getElementById('topupAmount').value=''
+  document.getElementById('topupFile').value=''
+  document.getElementById('topupUploadText').textContent='คลิกเพื่ออัปโหลดสลิป'
+  document.getElementById('topupUploadArea').classList.remove('has-file')
+}
+
+function onTopupFileChange(input){
+  if(input.files[0]){
+    document.getElementById('topupUploadArea').classList.add('has-file')
+    document.getElementById('topupUploadText').textContent='✓ '+input.files[0].name
+  }
+}
+
+async function submitTopup(){
+  const amount = document.getElementById('topupAmount').value
+  const file = document.getElementById('topupFile').files[0]
+  if(!amount||amount<50) return toast('ยอดขั้นต่ำ 50 บาท','error')
+  if(!file) return toast('กรุณาแนบสลิป','error')
+  const fd=new FormData(); fd.append('amount',amount); fd.append('slip',file)
+  const r=await fetch('/api/topup',{method:'POST',body:fd})
+  const d=await r.json()
+  if(!r.ok) return toast(d.error,'error')
+  toast('ส่งสลิปสำเร็จ รอแอดมินตรวจสอบ','success')
+  closeTopup(); loadTopups()
+}
+
+/* ============================
+   ACCOUNT
+============================ */
+async function loadProfile(){
+  state.profile = await api('/api/profile')
+  if(!state.profile) return
+  document.getElementById('profileAvatar').textContent = state.profile.username[0].toUpperCase()
+  document.getElementById('profileName').textContent = state.profile.username
+  document.getElementById('profileEmail').textContent = state.profile.email
+  document.getElementById('topbarBal').textContent = (state.profile.balance||0).toLocaleString()+' ฿'
+  document.getElementById('walletBalBook').textContent = (state.profile.balance||0).toLocaleString()+' ฿'
+  updateWalletDisplay()
+}
+
+async function loadAccount(){
+  await loadProfile()
+  const bookings = await api('/api/my-bookings')
+  document.getElementById('statTotal').textContent = bookings.length
+  document.getElementById('statApproved').textContent = bookings.filter(b=>b.status==='approved').length
+  document.getElementById('statBal').textContent = (state.profile?.balance||0).toLocaleString()
+}
+
+async function logout(){
+  await fetch('/logout',{method:'POST'})
+  location.reload()
+}
+
+/* ============================
+   HELPERS
+============================ */
+async function api(url){
+  try{
+    const r=await fetch(url,{credentials:'include'})
+    return await r.json()
+  }catch(e){ return {} }
+}
+
+function statusTH(s){
+  return {pending:'⏳ รอตรวจสอบ',approved:'✓ อนุมัติแล้ว',rejected:'✕ ไม่อนุมัติ',cancelled:'— ยกเลิกแล้ว'}[s]||s
+}
+
+function toast(msg, type='success'){
+  const w=document.getElementById('toasts')
+  const t=document.createElement('div')
+  t.className='toast '+type
+  t.textContent=msg
+  w.appendChild(t)
+  setTimeout(()=>t.remove(), 3500)
+}
+
+/* ============================
+   CLOSE MODAL ON BG CLICK
+============================ */
+document.getElementById('topupModal').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeTopup()
+})
+
+init()
+</script>
 </body>
 </html>

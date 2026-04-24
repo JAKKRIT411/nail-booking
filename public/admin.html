@@ -2,236 +2,600 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Admin Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<title>LUMI NAILS — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
-
-body{
-margin:0;
-font-family:Segoe UI;
-display:flex;
-background:#f1f5f9;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0909;--surface:#111010;--card:#181716;--border:#252322;--gold:#c9a96e;--gold2:#e8c98a;--text:#f0ede8;--muted:#7a7672;--green:#4caf7d;--red:#e05c5c;--orange:#e8a44a;--sidebar:220px}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;display:flex;min-height:100vh}
 
 /* SIDEBAR */
-
-.sidebar{
-width:230px;
-background:#111827;
-color:white;
-min-height:100vh;
-padding:20px;
-}
-
-.sidebar h2{
-margin-bottom:25px;
-}
-
-.menu-item{
-padding:10px;
-margin-bottom:10px;
-border-radius:8px;
-cursor:pointer;
-}
-
-.menu-item:hover{
-background:#374151;
-}
+.sidebar{width:var(--sidebar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;overflow-y:auto}
+.sidebar-logo{padding:24px 20px 20px;font-family:'Cormorant Garamond',serif;font-size:20px;letter-spacing:3px;color:var(--gold);border-bottom:1px solid var(--border)}
+.sidebar-logo span{display:block;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);margin-top:2px}
+.nav{padding:12px 0;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;color:var(--muted);cursor:pointer;transition:.15s;border-left:2px solid transparent;font-size:14px}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,169,110,.06)}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:white;border-radius:999px;font-size:10px;padding:1px 7px;min-width:18px;text-align:center}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border)}
+.user-chip{display:flex;align-items:center;gap:10px}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gold)}
+.user-name{font-size:13px;font-weight:500}
+.user-role{font-size:11px;color:var(--muted)}
 
 /* MAIN */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:20px}
+.content{padding:28px;flex:1}
 
-.main{
-flex:1;
-padding:20px;
-}
-
-header{
-background:white;
-padding:15px;
-border-radius:10px;
-display:flex;
-justify-content:space-between;
-margin-bottom:20px;
-box-shadow:0 4px 10px rgba(0,0,0,0.05);
-}
-
+/* SECTION */
 .section{display:none}
-.active{display:block}
+.section.active{display:block}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.stat-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.stat-value{font-family:'Cormorant Garamond',serif;font-size:40px;line-height:1;color:var(--gold)}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:4px}
 
 /* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:20px}
+.card-title{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 
-.card{
-background:white;
-padding:15px;
-border-radius:10px;
-margin-bottom:15px;
-box-shadow:0 3px 8px rgba(0,0,0,0.05);
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:15px;
-}
-
-/* SLOT */
-
-.slot{
-background:#f9fafb;
-padding:8px;
-border-radius:8px;
-margin-bottom:6px;
-font-size:13px;
-}
+/* TABLE */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+td{padding:12px 14px;border-bottom:1px solid rgba(46,43,41,.5);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
 
 /* BADGE */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500;white-space:nowrap}
+.badge.pending{background:rgba(232,164,74,.15);color:var(--orange)}
+.badge.approved{background:rgba(76,175,125,.15);color:var(--green)}
+.badge.rejected{background:rgba(224,92,92,.15);color:var(--red)}
+.badge.cancelled{background:rgba(122,118,114,.15);color:var(--muted)}
 
-.badge{
-padding:4px 8px;
-border-radius:12px;
-font-size:11px;
-color:white;
-}
+/* BUTTONS */
+.btn{border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:inherit;font-size:13px;transition:.15s}
+.btn-gold{background:var(--gold);color:#1a1610;font-weight:500}
+.btn-gold:hover{background:var(--gold2)}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px}
+.btn-approve{background:rgba(76,175,125,.15);color:var(--green);border:1px solid rgba(76,175,125,.3)}
+.btn-approve:hover{background:rgba(76,175,125,.3)}
+.btn-reject{background:rgba(224,92,92,.1);color:var(--red);border:1px solid rgba(224,92,92,.25)}
+.btn-reject:hover{background:rgba(224,92,92,.2)}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
 
-.green{background:#16a34a}
-.orange{background:#f59e0b}
-.gray{background:#6b7280}
+/* FORM */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.form-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;transition:.15s}
+.form-input:focus{border-color:var(--gold)}
 
-/* BUTTON */
+/* FILTER TABS */
+.filter-tabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.f-tab{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;transition:.15s}
+.f-tab.active{border-color:var(--gold);color:var(--gold);background:rgba(201,169,110,.08)}
 
-button{
-border:none;
-padding:6px 10px;
-border-radius:6px;
-cursor:pointer;
-background:#111827;
-color:white;
-font-size:12px;
-}
+/* SLIP THUMB */
+.slip-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;cursor:pointer;border:1px solid var(--border)}
+.slip-thumb:hover{border-color:var(--gold)}
 
-button:hover{opacity:0.85}
+/* TOAST */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 16px;font-size:13px;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fadeUp .25s ease}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+@keyframes fadeUp{from{transform:translateY(8px);opacity:0}to{opacity:1;transform:none}}
 
-button:disabled{
-opacity:0.4;
-cursor:not-allowed;
-}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:20px}
 
-input{
-padding:6px;
-border-radius:6px;
-border:1px solid #ddd;
-margin-right:6px;
-}
+/* SLOT BULK */
+.time-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.time-chip{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;color:var(--muted);transition:.15s;font-family:inherit}
+.time-chip.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,169,110,.08)}
 
-img{
-max-width:150px;
-border-radius:8px;
-margin-top:6px;
-cursor:pointer;
-}
+/* EMPTY */
+.empty{text-align:center;padding:40px;color:var(--muted)}
 
+/* SERVICE EDIT */
+.svc-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
+.svc-row:last-child{border-bottom:none}
+.svc-name{flex:1;font-weight:500}
+.svc-meta{color:var(--muted);font-size:12px;margin-top:2px}
 </style>
 </head>
-
 <body>
 
+<!-- SIDEBAR -->
 <div class="sidebar">
-
-<h2>Admin</h2>
-
-<div class="menu-item" onclick="show('dashboard')">📊 Dashboard</div>
-<div class="menu-item" onclick="show('calendar')">📆 Calendar</div>
-<div class="menu-item" onclick="show('bookings')">📋 Bookings</div>
-<div class="menu-item" onclick="show('services')">💅 Services</div>
-
+  <div class="sidebar-logo">LUMI<span>Admin Panel</span></div>
+  <nav class="nav">
+    <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
+    <div class="nav-item" onclick="nav('bookings')"><span class="nav-icon">📋</span> การจอง <span class="nav-badge" id="pendingBadge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="nav('topups')"><span class="nav-icon">💳</span> เติมเงิน <span class="nav-badge" id="topupBadge" style="display:none">0</span></div>
+    <div class="nav-item" onclick="nav('slots')"><span class="nav-icon">📅</span> จัดการคิว</div>
+    <div class="nav-item" onclick="nav('services')"><span class="nav-icon">✦</span> บริการ</div>
+    <div class="nav-item" onclick="nav('users')"><span class="nav-icon">👥</span> ผู้ใช้</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <div class="user-avatar" id="adminAvatar">A</div>
+      <div><div class="user-name" id="adminName">Admin</div><div class="user-role">Administrator</div></div>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:12px" onclick="logout()">ออกจากระบบ</button>
+  </div>
 </div>
 
+<!-- MAIN -->
 <div class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Dashboard</div>
+    <div style="font-size:12px;color:var(--muted)" id="lastUpdate"></div>
+  </div>
+  <div class="content">
 
-<header>
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="card">
+        <div class="card-title">รายได้แยกตามบริการ</div>
+        <canvas id="revenueChart" height="80"></canvas>
+      </div>
+    </div>
 
-<div>
-<strong>Admin Panel</strong>
+    <!-- BOOKINGS -->
+    <div class="section" id="sec-bookings">
+      <div class="filter-tabs">
+        <button class="f-tab active" onclick="filterBookings('')">ทั้งหมด</button>
+        <button class="f-tab" onclick="filterBookings('pending')">รอตรวจสอบ</button>
+        <button class="f-tab" onclick="filterBookings('approved')">อนุมัติแล้ว</button>
+        <button class="f-tab" onclick="filterBookings('rejected')">ไม่อนุมัติ</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>คิว</th><th>ผู้ใช้</th><th>บริการ</th><th>วันที่/เวลา</th>
+              <th>ชำระ</th><th>สลิป</th><th>สถานะ</th><th>ดำเนินการ</th>
+            </tr></thead>
+            <tbody id="bookingsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOPUPS -->
+    <div class="section" id="sec-topups">
+      <div class="filter-tabs">
+        <button class="f-tab active" onclick="filterTopups('')">ทั้งหมด</button>
+        <button class="f-tab" onclick="filterTopups('pending')">รอตรวจสอบ</button>
+        <button class="f-tab" onclick="filterTopups('approved')">อนุมัติแล้ว</button>
+        <button class="f-tab" onclick="filterTopups('rejected')">ไม่อนุมัติ</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>ผู้ใช้</th><th>จำนวน</th><th>สลิป</th><th>วันที่</th><th>สถานะ</th><th>ดำเนินการ</th>
+            </tr></thead>
+            <tbody id="topupsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLOTS -->
+    <div class="section" id="sec-slots">
+      <div class="card">
+        <div class="card-title">เพิ่มคิวแบบ Bulk</div>
+        <div class="form-row">
+          <input class="form-input" type="date" id="bulkDate">
+          <button class="btn btn-gold" onclick="openBulkSlot()">เลือกเวลา</button>
+        </div>
+        <div class="form-row" style="margin-top:8px">
+          <input class="form-input" type="date" id="singleDate">
+          <input class="form-input" type="time" id="singleTime">
+          <button class="btn btn-gold" onclick="addSingleSlot()">+ เพิ่มคิว</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          คิวทั้งหมด
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-input" type="date" id="slotFilterDate" oninput="filterSlots()" style="font-size:12px;padding:6px 10px">
+            <button class="f-tab active" onclick="clearSlotFilter()">ทั้งหมด</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>วันที่</th><th>เวลา</th><th>สถานะ</th><th>ลบ</th></tr></thead>
+            <tbody id="slotsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SERVICES -->
+    <div class="section" id="sec-services">
+      <div class="card">
+        <div class="card-title">เพิ่มบริการใหม่</div>
+        <div class="form-row">
+          <input class="form-input" id="svcName" placeholder="ชื่อบริการ" style="flex:2">
+          <input class="form-input" type="number" id="svcPrice" placeholder="ราคา (฿)" style="flex:1">
+          <input class="form-input" type="number" id="svcDur" placeholder="นาที" style="width:80px;flex:0 0 80px" value="60">
+          <button class="btn btn-gold" onclick="addService()">+ เพิ่ม</button>
+        </div>
+        <input class="form-input" id="svcDesc" placeholder="คำอธิบาย (ถ้ามี)" style="width:100%;margin-top:4px">
+      </div>
+      <div class="card">
+        <div class="card-title">บริการทั้งหมด</div>
+        <div id="servicesList"></div>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div class="section" id="sec-users">
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Username</th><th>Email</th><th>เบอร์โทร</th><th>ยอดเงิน (฿)</th><th>สมัครเมื่อ</th></tr></thead>
+            <tbody id="usersTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
-<div>
-👤 <span id="adminName"></span>
-<button onclick="logout()">Logout</button>
+<!-- BULK SLOT MODAL -->
+<div class="modal-bg" id="bulkModal">
+  <div class="modal">
+    <div class="modal-title">เลือกเวลาสำหรับ <span id="bulkDateLabel"></span></div>
+    <div class="time-chips" id="timeChips"></div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-ghost" onclick="document.getElementById('bulkModal').classList.remove('open')" style="flex:1">ยกเลิก</button>
+      <button class="btn btn-gold" onclick="submitBulkSlots()" style="flex:2">เพิ่มคิวที่เลือก</button>
+    </div>
+  </div>
 </div>
 
-</header>
+<!-- TOAST -->
+<div class="toast-wrap" id="toasts"></div>
 
-<!-- DASHBOARD -->
+<script>
+/* ============================
+   STATE
+============================ */
+let allSlots=[], allBookings=[], allTopups=[], allServices=[], chartInstance=null
 
-<div id="dashboard" class="section active">
+/* ============================
+   INIT
+============================ */
+async function init(){
+  const me = await api('/api/me')
+  if(!me.user||me.user.role!=='admin'){ location='/login.html'; return }
+  document.getElementById('adminName').textContent = me.user.username
+  document.getElementById('adminAvatar').textContent = me.user.username[0].toUpperCase()
+  await loadDashboard()
+  updateLastUpdate()
+  setInterval(()=>{ if(document.getElementById('sec-dashboard').classList.contains('active')) loadDashboard() }, 60000)
+}
 
-<div class="grid">
+function updateLastUpdate(){
+  document.getElementById('lastUpdate').textContent = 'อัปเดต '+new Date().toLocaleTimeString('th-TH')
+}
 
-<div class="card">
-<h3>Revenue</h3>
-<h2 id="totalRevenue">0</h2>
-</div>
+/* ============================
+   NAVIGATION
+============================ */
+const titles={dashboard:'Dashboard',bookings:'การจอง',topups:'เติมเงิน',slots:'จัดการคิว',services:'บริการ',users:'ผู้ใช้'}
+async function nav(section){
+  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',Object.keys(titles)[i]===section))
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'))
+  document.getElementById('sec-'+section).classList.add('active')
+  document.getElementById('pageTitle').textContent = titles[section]
+  if(section==='dashboard') await loadDashboard()
+  if(section==='bookings') await loadBookings()
+  if(section==='topups') await loadTopups()
+  if(section==='slots') await loadSlots()
+  if(section==='services') await loadServices()
+  if(section==='users') await loadUsers()
+  updateLastUpdate()
+}
 
-<div class="card">
-<h3>Total Bookings</h3>
-<h2 id="totalBookings">0</h2>
-</div>
+/* ============================
+   DASHBOARD
+============================ */
+async function loadDashboard(){
+  const stats = await api('/admin/stats')
+  const g = document.getElementById('statsGrid')
+  g.innerHTML=`
+    <div class="stat-card"><div class="stat-label">รายได้ทั้งหมด</div><div class="stat-value">${(stats.revenue||0).toLocaleString()}</div><div class="stat-sub">บาท (approved)</div></div>
+    <div class="stat-card"><div class="stat-label">การจองทั้งหมด</div><div class="stat-value">${stats.totalBookings||0}</div><div class="stat-sub">รายการ</div></div>
+    <div class="stat-card"><div class="stat-label">รอตรวจสอบ</div><div class="stat-value" style="color:var(--orange)">${stats.pendingBookings||0}</div><div class="stat-sub">การจอง</div></div>
+    <div class="stat-card"><div class="stat-label">สลิปเติมเงิน</div><div class="stat-value" style="color:${stats.pendingTopups>0?'var(--red)':'var(--green)'}">${stats.pendingTopups||0}</div><div class="stat-sub">รอตรวจสอบ</div></div>
+    <div class="stat-card"><div class="stat-label">ผู้ใช้ทั้งหมด</div><div class="stat-value">${stats.totalUsers||0}</div><div class="stat-sub">สมาชิก</div></div>
+  `
+  // badges
+  const pb = document.getElementById('pendingBadge'), tb = document.getElementById('topupBadge')
+  if(stats.pendingBookings>0){pb.textContent=stats.pendingBookings;pb.style.display='inline'}else{pb.style.display='none'}
+  if(stats.pendingTopups>0){tb.textContent=stats.pendingTopups;tb.style.display='inline'}else{tb.style.display='none'}
+  // chart
+  const rev = stats.revenueByService||{}
+  const labels=Object.keys(rev), values=Object.values(rev)
+  if(chartInstance) chartInstance.destroy()
+  chartInstance = new Chart(document.getElementById('revenueChart'),{
+    type:'bar',
+    data:{labels,datasets:[{label:'รายได้ (฿)',data:values,backgroundColor:'rgba(201,169,110,.7)',borderColor:'#c9a96e',borderWidth:1,borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#7a7672'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#7a7672'},grid:{display:false}}}}
+  })
+}
 
-</div>
+/* ============================
+   BOOKINGS
+============================ */
+let bookFilter=''
+async function loadBookings(filter=''){
+  const qs=filter?'?status='+filter:''
+  allBookings = await api('/admin/bookings'+qs)
+  renderBookings()
+}
+function filterBookings(f){
+  bookFilter=f
+  document.querySelectorAll('#sec-bookings .f-tab').forEach((t,i)=>t.classList.toggle('active',i===['','pending','approved','rejected'].indexOf(f)))
+  loadBookings(f)
+}
+function renderBookings(){
+  const tbody=document.getElementById('bookingsTbody')
+  if(!allBookings.length){tbody.innerHTML='<tr><td colspan="8" class="empty">ไม่มีข้อมูล</td></tr>';return}
+  tbody.innerHTML=allBookings.map(b=>`
+    <tr>
+      <td><strong>#${b.queueNumber||'—'}</strong></td>
+      <td>
+        <div style="font-weight:500">${b.username}</div>
+        <div style="color:var(--muted);font-size:11px">${maskEmail(b.email||'')}</div>
+        <div style="color:var(--muted);font-size:11px">${b.phone||''}</div>
+      </td>
+      <td>
+        <div>${b.service?.name||'—'}</div>
+        <div style="color:var(--gold);font-size:12px">${(b.service?.price||0).toLocaleString()} ฿</div>
+      </td>
+      <td>
+        <div>${b.slot?.date||'—'}</div>
+        <div style="color:var(--muted)">${b.slot?.time||'—'}</div>
+      </td>
+      <td>
+        <span class="badge ${b.paymentMethod==='wallet'?'approved':'pending'}" style="font-size:10px">
+          ${b.paymentMethod==='wallet'?'👛 Wallet':'💳 โอน'}
+        </span>
+        ${b.note?`<div style="color:var(--muted);font-size:11px;margin-top:3px">📝 ${b.note}</div>`:''}
+      </td>
+      <td>${b.slip?`<img class="slip-thumb" src="${b.slip}" onclick="window.open('${b.slip}')" title="ดูสลิป">`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
+      <td><span class="badge ${b.status}">${statusTH(b.status)}</span>${b.reason?`<div style="color:var(--muted);font-size:11px;margin-top:3px">${b.reason}</div>`:''}</td>
+      <td>
+        ${b.status==='pending'?`
+          <button class="btn btn-approve btn-sm" onclick="updateBooking('${b.id}','approved')">✓ อนุมัติ</button>
+          <button class="btn btn-reject btn-sm" style="margin-top:4px" onclick="rejectBooking('${b.id}')">✕ ไม่อนุมัติ</button>
+        `:b.status==='approved'?`<button class="btn btn-reject btn-sm" onclick="rejectBooking('${b.id}')">✕ เพิกถอน</button>`:'<span style="color:var(--muted)">—</span>'}
+      </td>
+    </tr>
+  `).join('')
+}
+async function updateBooking(id,status,reason=''){
+  const r=await fetch('/admin/update-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status,reason})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast(status==='approved'?'อนุมัติแล้ว':'ไม่อนุมัติแล้ว','success')
+  loadBookings(bookFilter); loadDashboard()
+}
+async function rejectBooking(id){
+  const reason=prompt('เหตุผลในการไม่อนุมัติ'); if(reason===null) return
+  updateBooking(id,'rejected',reason)
+}
 
-<div class="card">
-<canvas id="chart"></canvas>
-</div>
+/* ============================
+   TOPUPS
+============================ */
+let topupFilter=''
+async function loadTopups(filter=''){
+  const qs=filter?'?status='+filter:''
+  allTopups = await api('/admin/topups'+qs)
+  renderTopups()
+}
+function filterTopups(f){
+  topupFilter=f
+  document.querySelectorAll('#sec-topups .f-tab').forEach((t,i)=>t.classList.toggle('active',i===['','pending','approved','rejected'].indexOf(f)))
+  loadTopups(f)
+}
+function renderTopups(){
+  const tbody=document.getElementById('topupsTbody')
+  if(!allTopups.length){tbody.innerHTML='<tr><td colspan="6" class="empty">ไม่มีข้อมูล</td></tr>';return}
+  tbody.innerHTML=allTopups.map(t=>`
+    <tr>
+      <td><strong>${t.username}</strong></td>
+      <td style="color:var(--green);font-size:16px;font-family:'Cormorant Garamond',serif">+${(t.amount||0).toLocaleString()} ฿</td>
+      <td>${t.slip?`<img class="slip-thumb" src="${t.slip}" onclick="window.open('${t.slip}')" title="ดูสลิป">`: '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="color:var(--muted)">${new Date(t.createdAt).toLocaleDateString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td><span class="badge ${t.status}">${t.status==='approved'?'✓ อนุมัติ':t.status==='rejected'?'✕ ไม่อนุมัติ':'⏳ รอ'}</span>${t.reason?`<div style="color:var(--muted);font-size:11px">${t.reason}</div>`:''}</td>
+      <td>
+        ${t.status==='pending'?`
+          <button class="btn btn-approve btn-sm" onclick="approveTopup('${t._id}')">✓ อนุมัติ</button>
+          <button class="btn btn-reject btn-sm" style="margin-top:4px" onclick="rejectTopup('${t._id}')">✕ ไม่อนุมัติ</button>
+        `:'<span style="color:var(--muted)">—</span>'}
+      </td>
+    </tr>
+  `).join('')
+}
+async function approveTopup(id){
+  const r=await fetch('/admin/approve-topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('เติมเงินสำเร็จ','success'); loadTopups(topupFilter); loadDashboard()
+}
+async function rejectTopup(id){
+  const reason=prompt('เหตุผล'); if(reason===null) return
+  const r=await fetch('/admin/reject-topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,reason})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('ไม่อนุมัติการเติมเงิน','success'); loadTopups(topupFilter); loadDashboard()
+}
 
-</div>
+/* ============================
+   SLOTS
+============================ */
+async function loadSlots(){
+  allSlots = await api('/admin/all-slots')
+  renderSlots()
+}
+let slotDateFilter=''
+function filterSlots(){ slotDateFilter=document.getElementById('slotFilterDate').value; renderSlots() }
+function clearSlotFilter(){ document.getElementById('slotFilterDate').value=''; slotDateFilter=''; renderSlots() }
+function renderSlots(){
+  const tbody=document.getElementById('slotsTbody')
+  let slots=allSlots
+  if(slotDateFilter) slots=slots.filter(s=>s.date===slotDateFilter)
+  if(!slots.length){tbody.innerHTML='<tr><td colspan="4" class="empty">ไม่มีคิว</td></tr>';return}
+  tbody.innerHTML=slots.map(s=>`
+    <tr>
+      <td>${s.date}</td>
+      <td><strong>${s.time}</strong></td>
+      <td><span class="badge ${s.status==='available'?'approved':s.status==='booked'?'pending':'rejected'}">${s.status==='available'?'ว่าง':s.status==='booked'?'จองแล้ว':'บล็อก'}</span></td>
+      <td>${s.status!=='booked'?`<button class="btn btn-reject btn-sm" onclick="deleteSlot('${s._id}')">ลบ</button>`:'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>
+  `).join('')
+}
+async function addSingleSlot(){
+  const date=document.getElementById('singleDate').value, time=document.getElementById('singleTime').value
+  if(!date||!time) return toast('กรอกวันและเวลา','error')
+  const r=await fetch('/admin/add-slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,time})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('เพิ่มคิวแล้ว','success'); loadSlots()
+}
+async function deleteSlot(id){
+  if(!confirm('ลบคิวนี้?')) return
+  const r=await fetch('/admin/delete-slot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('ลบแล้ว','success'); loadSlots()
+}
 
-<!-- CALENDAR -->
+// Bulk slots
+const TIMES=['09:00','09:30','10:00','10:30','11:00','11:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30']
+let bulkSelected=new Set()
+function openBulkSlot(){
+  const date=document.getElementById('bulkDate').value
+  if(!date){toast('เลือกวันก่อน','error');return}
+  document.getElementById('bulkDateLabel').textContent=date
+  bulkSelected=new Set()
+  document.getElementById('timeChips').innerHTML=TIMES.map(t=>`
+    <button class="time-chip" onclick="toggleBulkTime('${t}',this)">${t}</button>
+  `).join('')
+  document.getElementById('bulkModal').classList.add('open')
+}
+function toggleBulkTime(t,el){
+  if(bulkSelected.has(t)){bulkSelected.delete(t);el.classList.remove('sel')}
+  else{bulkSelected.add(t);el.classList.add('sel')}
+}
+async function submitBulkSlots(){
+  if(!bulkSelected.size){toast('เลือกเวลาก่อน','error');return}
+  const date=document.getElementById('bulkDate').value
+  const r=await fetch('/admin/bulk-add-slots',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date,times:[...bulkSelected]})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast(`เพิ่ม ${d.created} คิวสำเร็จ`,'success')
+  document.getElementById('bulkModal').classList.remove('open')
+  loadSlots()
+}
 
-<div id="calendar" class="section">
+/* ============================
+   SERVICES
+============================ */
+async function loadServices(){
+  allServices = await api('/admin/services')
+  const list=document.getElementById('servicesList')
+  if(!allServices.length){list.innerHTML='<div class="empty">ยังไม่มีบริการ</div>';return}
+  list.innerHTML=allServices.map(s=>`
+    <div class="svc-row">
+      <div style="flex:1">
+        <div class="svc-name">${s.name} ${!s.active?'<span style="color:var(--muted);font-size:11px">(ปิด)</span>':''}</div>
+        <div class="svc-meta">${(s.price||0).toLocaleString()} ฿ · ${s.duration||60} นาที${s.description?' · '+s.description:''}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="toggleService('${s._id}',${!s.active})">${s.active?'ปิด':'เปิด'}</button>
+      <button class="btn btn-reject btn-sm" onclick="deleteService('${s._id}')">ลบ</button>
+    </div>
+  `).join('')
+}
+async function addService(){
+  const name=document.getElementById('svcName').value.trim()
+  const price=document.getElementById('svcPrice').value
+  const duration=document.getElementById('svcDur').value||60
+  const description=document.getElementById('svcDesc').value.trim()
+  if(!name||!price){toast('กรอกชื่อและราคา','error');return}
+  const r=await fetch('/admin/add-service',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,price,duration,description})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('เพิ่มบริการแล้ว','success')
+  document.getElementById('svcName').value=''; document.getElementById('svcPrice').value=''
+  document.getElementById('svcDesc').value=''
+  loadServices()
+}
+async function toggleService(id,active){
+  const svc=allServices.find(s=>s._id===id)
+  if(!svc) return
+  await fetch('/admin/update-service',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:svc.name,price:svc.price,duration:svc.duration,description:svc.description,active})})
+  loadServices()
+}
+async function deleteService(id){
+  if(!confirm('ลบบริการนี้?')) return
+  const r=await fetch('/admin/delete-service',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})
+  const d=await r.json(); if(!r.ok){toast(d.error,'error');return}
+  toast('ลบแล้ว','success'); loadServices()
+}
 
-<div class="card">
+/* ============================
+   USERS
+============================ */
+async function loadUsers(){
+  const users=await api('/admin/users')
+  const tbody=document.getElementById('usersTbody')
+  if(!users.length){tbody.innerHTML='<tr><td colspan="5" class="empty">ไม่มีข้อมูล</td></tr>';return}
+  tbody.innerHTML=users.map(u=>`
+    <tr>
+      <td><strong>${u.username}</strong></td>
+      <td style="color:var(--muted)">${maskEmail(u.email)}</td>
+      <td style="color:var(--muted)">${u.phone||'—'}</td>
+      <td style="color:var(--gold);font-family:'Cormorant Garamond',serif;font-size:18px">${(u.balance||0).toLocaleString()}</td>
+      <td style="color:var(--muted);font-size:12px">${new Date(u.createdAt).toLocaleDateString('th-TH')}</td>
+    </tr>
+  `).join('')
+}
 
-<input type="date" id="slotDate">
-<input type="time" id="slotTime">
+/* ============================
+   HELPERS
+============================ */
+async function api(url){
+  try{const r=await fetch(url,{credentials:'include'}); return await r.json()}
+  catch(e){return {}}
+}
+function statusTH(s){return {pending:'⏳ รอ',approved:'✓ อนุมัติ',rejected:'✕ ไม่อนุมัติ',cancelled:'— ยกเลิก'}[s]||s}
+function maskEmail(e){if(!e) return ''; const [n,d]=e.split('@'); return n.slice(0,2)+'***@'+(d||'')}
+function toast(msg,type='success'){
+  const w=document.getElementById('toasts'), t=document.createElement('div')
+  t.className='toast '+type; t.textContent=msg; w.appendChild(t)
+  setTimeout(()=>t.remove(),3500)
+}
+async function logout(){await fetch('/logout',{method:'POST'}); location='/login.html'}
+document.getElementById('bulkModal').addEventListener('click',e=>{if(e.target===e.currentTarget) e.target.classList.remove('open')})
 
-<button onclick="addSlot()">Add Slot</button>
-
-</div>
-
-<div class="grid" id="calendarGrid"></div>
-
-</div>
-
-<!-- BOOKINGS -->
-
-<div id="bookings" class="section">
-<div id="bookingList"></div>
-</div>
-
-<!-- SERVICES -->
-
-<div id="services" class="section">
-
-<div class="card">
-
-<input id="newName" placeholder="Service name">
-<input id="newPrice" type="number" placeholder="Price">
-
-<button onclick="addService()">Add</button>
-
-</div>
-
-<div id="serviceList"></div>
-
-</div>
-
-</div>
-
-<!-- BUG FIX: Use external admin.js (was inline script mixed with backend code) -->
-<script src="/js/admin.js"></script>
-
+init()
+</script>
 </body>
 </html>

@@ -2,133 +2,94 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Register</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMI NAILS — สมัครสมาชิก</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-body{
-  font-family:Arial;
-  background:linear-gradient(135deg,#ec4899,#f43f5e);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.card{
-  background:white;
-  padding:40px;
-  border-radius:15px;
-  width:350px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
-}
-
-input{
-  width:100%;
-  padding:10px;
-  margin-bottom:12px;
-  border-radius:8px;
-  border:1px solid #ddd;
-}
-
-button{
-  width:100%;
-  padding:10px;
-  background:#ec4899;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-button:disabled{
-  background:#ccc;
-  cursor:not-allowed;
-}
-
-.checklist{
-  font-size:13px;
-  margin-bottom:10px;
-}
-
-.valid{ color:green; }
-.invalid{ color:red; }
-
-a{
-  display:block;
-  text-align:center;
-  margin-top:10px;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0e0d0d;--card:#181716;--border:#2e2b29;--gold:#c9a96e;--gold2:#e8c98a;--text:#f0ede8;--muted:#8a8480;--red:#e05c5c;--green:#4caf7d}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(201,169,110,.1),transparent);pointer-events:none}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:44px;max-width:420px;width:100%}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;letter-spacing:3px;color:var(--gold);text-align:center;display:block;margin-bottom:8px;text-decoration:none}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:36px}
+label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+input{width:100%;background:#201f1e;border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:.2s;margin-bottom:4px}
+input:focus{border-color:var(--gold)}
+.field{margin-bottom:16px}
+.checklist{font-size:12px;margin-bottom:16px;display:flex;flex-direction:column;gap:4px;padding:10px 14px;background:#201f1e;border-radius:8px}
+.check-item{color:var(--muted);transition:.2s}
+.check-item.ok{color:var(--green)}
+.check-item.fail{color:var(--red)}
+.btn{width:100%;padding:14px;background:var(--gold);color:#1a1610;border:none;border-radius:10px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;transition:.2s}
+.btn:hover:not(:disabled){background:var(--gold2)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{display:block;text-align:center;margin-top:20px;color:var(--muted);font-size:14px;text-decoration:none}
+.link span{color:var(--gold)}
+.err{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:16px;display:none}
 </style>
 </head>
-
 <body>
-
 <div class="card">
-  <h2 style="text-align:center;">สมัครสมาชิก</h2>
-
-  <form id="registerForm" action="/register" method="POST">
-
-    <input name="username" placeholder="Username" required>
-
-    <input name="email" type="email" placeholder="Gmail" required>
-
-    <input name="phone" placeholder="เบอร์โทร (0xxxxxxxxx)" required>
-
-    <input name="password" id="password" type="password"
-           placeholder="Password (อย่างน้อย 8 ตัว)" required>
-
+  <a href="/" class="logo">LUMI NAILS</a>
+  <div class="sub">สร้างบัญชีใหม่</div>
+  <div class="err" id="err"></div>
+  <div class="field">
+    <label>Username</label>
+    <input id="username" placeholder="ตัวอักษรและตัวเลข" oninput="validate()">
+  </div>
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="example@gmail.com" oninput="validate()">
+  </div>
+  <div class="field">
+    <label>เบอร์โทร</label>
+    <input id="phone" placeholder="0xxxxxxxxx" oninput="validate()">
+  </div>
+  <div class="field">
+    <label>รหัสผ่าน</label>
+    <input type="password" id="password" placeholder="อย่างน้อย 8 ตัว" oninput="validate()">
     <div class="checklist">
-      <div id="length" class="invalid">❌ อย่างน้อย 8 ตัว</div>
-      <div id="uppercase" class="invalid">❌ มีตัวพิมพ์ใหญ่ (A-Z)</div>
-      <div id="number" class="invalid">❌ มีตัวเลข (0-9)</div>
+      <div class="check-item" id="c1">— อย่างน้อย 8 ตัวอักษร</div>
+      <div class="check-item" id="c2">— มีตัวพิมพ์ใหญ่ (A-Z)</div>
+      <div class="check-item" id="c3">— มีตัวเลข (0-9)</div>
     </div>
-
-    <button id="submitBtn" type="submit" disabled>Register</button>
-
-  </form>
-
-  <a href="/login.html">กลับไป Login</a>
+  </div>
+  <button class="btn" id="btn" onclick="register()" disabled>สมัครสมาชิก</button>
+  <a href="/login.html" class="link">มีบัญชีแล้ว? <span>เข้าสู่ระบบ</span></a>
 </div>
-
 <script>
-
-const passwordInput = document.getElementById("password");
-const submitBtn = document.getElementById("submitBtn");
-
-passwordInput.addEventListener("input", function(){
-
-  const value = passwordInput.value;
-
-  const lengthValid = value.length >= 8;
-  const uppercaseValid = /[A-Z]/.test(value);
-  const numberValid = /\d/.test(value);
-
-  updateStatus("length", lengthValid);
-  updateStatus("uppercase", uppercaseValid);
-  updateStatus("number", numberValid);
-
-  if(lengthValid && uppercaseValid && numberValid){
-    submitBtn.disabled = false;
-  }else{
-    submitBtn.disabled = true;
+function validate(){
+  const pw=document.getElementById('password').value
+  const l=pw.length>=8, u=/[A-Z]/.test(pw), n=/\d/.test(pw)
+  const mark=(id,ok)=>{
+    const el=document.getElementById(id)
+    el.classList.toggle('ok',ok); el.classList.toggle('fail',!ok&&pw.length>0)
+    el.textContent=(ok?'✓':'—')+' '+el.textContent.replace(/^[✓—] /,'')
   }
-});
-
-function updateStatus(id, isValid){
-  const el = document.getElementById(id);
-
-  if(isValid){
-    el.classList.remove("invalid");
-    el.classList.add("valid");
-    el.innerHTML = el.innerHTML.replace("❌","✅");
-  }else{
-    el.classList.remove("valid");
-    el.classList.add("invalid");
-    el.innerHTML = el.innerHTML.replace("✅","❌");
-  }
+  mark('c1',l); mark('c2',u); mark('c3',n)
+  const un=document.getElementById('username').value.trim()
+  const em=document.getElementById('email').value.trim()
+  const ph=document.getElementById('phone').value.trim()
+  document.getElementById('btn').disabled=!(l&&u&&n&&un&&em&&ph)
 }
-
+async function register(){
+  const btn=document.getElementById('btn'); const err=document.getElementById('err')
+  const data={
+    username:document.getElementById('username').value.trim(),
+    email:document.getElementById('email').value.trim(),
+    phone:document.getElementById('phone').value.trim(),
+    password:document.getElementById('password').value
+  }
+  btn.disabled=true; btn.textContent='กำลังสมัคร...'; err.style.display='none'
+  try{
+    const r=await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+    const d=await r.json()
+    if(!r.ok){err.textContent=d.error;err.style.display='block';return}
+    location.href='/login.html'
+  }catch(e){err.textContent='เกิดข้อผิดพลาด';err.style.display='block'}
+  finally{btn.disabled=false;btn.textContent='สมัครสมาชิก'}
+}
 </script>
-
 </body>
 </html>

@@ -2,57 +2,57 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUMI NAILS — เข้าสู่ระบบ</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-body{
-  font-family:Arial;
-  background:linear-gradient(135deg,#6366f1,#8b5cf6);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-.card{
-  background:white;
-  padding:40px;
-  border-radius:15px;
-  width:320px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
-}
-input{
-  width:100%;
-  padding:10px;
-  margin-bottom:12px;
-  border-radius:8px;
-  border:1px solid #ddd;
-}
-button{
-  width:100%;
-  padding:10px;
-  background:#6366f1;
-  color:white;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-a{
-  display:block;
-  text-align:center;
-  margin-top:10px;
-}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0e0d0d;--card:#181716;--border:#2e2b29;--gold:#c9a96e;--gold2:#e8c98a;--text:#f0ede8;--muted:#8a8480;--red:#e05c5c}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(201,169,110,.1),transparent);pointer-events:none}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:44px;max-width:400px;width:100%;position:relative}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;letter-spacing:3px;color:var(--gold);text-align:center;display:block;margin-bottom:8px;text-decoration:none}
+.sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:36px}
+label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+input{width:100%;background:#201f1e;border:1px solid var(--border);border-radius:10px;padding:13px 16px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:.2s;margin-bottom:18px}
+input:focus{border-color:var(--gold)}
+.btn{width:100%;padding:14px;background:var(--gold);color:#1a1610;border:none;border-radius:10px;font-size:15px;font-weight:500;font-family:inherit;cursor:pointer;transition:.2s}
+.btn:hover{background:var(--gold2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.link{display:block;text-align:center;margin-top:20px;color:var(--muted);font-size:14px;text-decoration:none}
+.link span{color:var(--gold)}
+.err{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.3);border-radius:8px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:16px;display:none}
 </style>
 </head>
 <body>
-
 <div class="card">
-  <h2 style="text-align:center;">เข้าสู่ระบบ</h2>
-  <form action="/login" method="POST">
-    <input name="username" placeholder="Username" required>
-    <input name="password" type="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-  </form>
-  <a href="/register.html">สมัครสมาชิก</a>
+  <a href="/" class="logo">LUMI NAILS</a>
+  <div class="sub">ยินดีต้อนรับกลับมา</div>
+  <div class="err" id="err"></div>
+  <label>Username</label>
+  <input type="text" id="username" placeholder="ชื่อผู้ใช้" autocomplete="username">
+  <label>รหัสผ่าน</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+  <button class="btn" id="btn" onclick="login()">เข้าสู่ระบบ</button>
+  <a href="/register.html" class="link">ยังไม่มีบัญชี? <span>สมัครสมาชิก</span></a>
 </div>
-
+<script>
+async function login(){
+  const u=document.getElementById('username').value.trim()
+  const p=document.getElementById('password').value
+  const err=document.getElementById('err')
+  const btn=document.getElementById('btn')
+  if(!u||!p){err.textContent='กรุณากรอกข้อมูล';err.style.display='block';return}
+  btn.disabled=true;btn.textContent='กำลังเข้าสู่ระบบ...'
+  err.style.display='none'
+  try{
+    const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})})
+    const d=await r.json()
+    if(!r.ok){err.textContent=d.error;err.style.display='block';return}
+    location.href = d.role==='admin'?'/admin':'/'
+  }catch(e){err.textContent='เกิดข้อผิดพลาด';err.style.display='block'}
+  finally{btn.disabled=false;btn.textContent='เข้าสู่ระบบ'}
+}
+</script>
 </body>
 </html>

@@ -1,44 +1,48 @@
-# 💅 Nail Booking System
+# 💅 LUMI NAILS — Booking System v2
 
-ระบบจองทำเล็บ ทำด้วย Node.js + Express + MongoDB
+ระบบจองร้านทำเล็บ พร้อมใช้งานจริง
 
-## การติดตั้ง
+## ฟีเจอร์
+- **ระบบจองคิว** — เลือกบริการ เลือกวัน เลือกเวลา พร้อม Queue Number
+- **ระบบกระเป๋าเงิน (Wallet)** — เติมเงินผ่านสลิป จ่ายด้วย wallet ได้เลย
+- **ระบบตรวจสลิป** — แอดมินเห็นสลิปชัด approve/reject ได้ทันที
+- **Admin Dashboard** — Stats, Revenue Chart, จัดการคิว bulk, ดูผู้ใช้
+- **Rate Limiting** — ป้องกัน brute force และ spam
+- **MongoDB Transaction** — จองคิวปลอดภัย ไม่ชนกัน
+- **Auto-reconnect DB** — server ไม่ตายถ้า MongoDB หลุด
 
-### 1. ติดตั้ง dependencies
-```bash
-npm install
+## วิธี Deploy บน Render + MongoDB Atlas
+
+### 1. MongoDB Atlas
+1. cloud.mongodb.com → Create Cluster (Free M0)
+2. Database Access → Add User (จำ user/pass)
+3. Network Access → 0.0.0.0/0
+4. Connect → Drivers → Copy connection string
+
+### 2. Render
+1. render.com → New Web Service → เชื่อม GitHub
+2. Build: `npm install` | Start: `npm start`
+3. Environment Variables:
+
+```
+MONGO_URI    = mongodb+srv://user:pass@cluster.mongodb.net/nail-booking
+SESSION_SECRET = ใส่ random string ยาวๆ อย่างน้อย 32 ตัว
+NODE_ENV     = production
+PORT         = 3000
 ```
 
-### 2. สร้างไฟล์ .env
-```bash
-cp .env.example .env
-```
-แก้ค่าใน `.env`:
-```
-MONGO_URI=mongodb://localhost:27017/nail-booking
-SESSION_SECRET=your_secret_key_here
-PORT=3000
-```
-
-### 3. รันเซิร์ฟเวอร์
-```bash
-npm start
-```
-
-เปิด browser ไปที่ `http://localhost:3000`
-
-## Admin Default
+## Default Admin
 - Username: `admin`
 - Password: `Admin123`
+- **เปลี่ยน password หลัง deploy ด้วย!**
 
-## Bug ที่แก้ไขแล้ว
-
-| บัค | ที่อยู่ | วิธีแก้ |
-|-----|---------|---------|
-| `/admin/revenue` route หายไป | `server.js` | เพิ่ม route ที่คำนวณรายได้จาก approved bookings แยกตาม service |
-| `slotId` ไม่ถูก set ตอนโหลดหน้า | `public/js/main.js` | เพิ่มการ set ค่าเริ่มต้นให้ `slotId` หลัง loadSlots() |
-| `public/js/admin.js` มีโค้ด Express router เก่า | `public/js/admin.js` | เขียนใหม่ให้เป็น frontend JS ที่ถูกต้อง |
-| `admin.html` ใช้ inline script แทน external file | `public/admin.html` | เปลี่ยนเป็น `<script src="/js/admin.js">` |
-| Register ไม่มี server-side validation | `server.js` | เพิ่มตรวจสอบ password และ duplicate user/email |
-| ไม่มี feedback เมื่อ slot/service ว่าง | `public/js/main.js` | เพิ่ม empty state message |
-| ลบการจองแล้ว slot ไม่ refresh | `public/js/main.js` | เพิ่ม `loadSlots()` หลัง `del()` |
+## โครงสร้างไฟล์
+```
+server.js          — Backend (Express + Mongoose)
+public/
+  index.html       — หน้าผู้ใช้ (จอง, กระเป๋าเงิน, บัญชี)
+  admin.html       — Admin Dashboard
+  login.html       — เข้าสู่ระบบ
+  register.html    — สมัครสมาชิก
+uploads/           — สลิปที่อัปโหลด
+```
