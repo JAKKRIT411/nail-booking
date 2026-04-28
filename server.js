@@ -10,6 +10,7 @@ import dotenv from "dotenv"
 import helmet from "helmet"
 import fs from "fs"
 import rateLimit from "express-rate-limit"
+import sharp from "sharp"
 
 dotenv.config()
 
@@ -105,16 +106,32 @@ if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (_, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase()
+    let ext = path.extname(file.originalname || "").toLowerCase()
+    // iOS HEIC — บันทึกเป็น .jpg เพื่อให้ browser แสดงได้ปกติ
+    // (ไฟล์จะถูก convert หลัง save ด้วย sharp)
+    if ([".heic", ".heif"].includes(ext) || file.mimetype === "application/octet-stream") {
+      ext = ".heic"
+    }
+    if (!ext || ext === ".") ext = ".jpg"
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
   }
 })
 
 const fileFilter = (_, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/heic"]
-  allowed.includes(file.mimetype)
-    ? cb(null, true)
-    : cb(new Error("อัปโหลดได้เฉพาะรูปภาพ (JPG, PNG, WEBP)"))
+  // iOS ส่ง HEIC ด้วย mime หลายแบบ หรือแม้แต่ octet-stream
+  const allowedMimes = [
+    "image/jpeg", "image/jpg", "image/png", "image/webp",
+    "image/heic", "image/heif",
+    "image/heic-sequence", "image/heif-sequence",
+    "application/octet-stream"
+  ]
+  const allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"]
+  const ext = path.extname(file.originalname || "").toLowerCase()
+  if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
+    cb(null, true)
+  } else {
+    cb(new Error("อัปโหลดได้เฉพาะรูปภาพ (JPG, PNG, HEIC)"))
+  }
 }
 
 const upload = multer({
@@ -122,6 +139,23 @@ const upload = multer({
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 }
 })
+
+// Convert HEIC/HEIF → JPEG so browsers can display slips correctly
+async function convertIfNeeded(filePath) {
+  try {
+    const ext = path.extname(filePath).toLowerCase()
+    if (ext === ".heic" || ext === ".heif") {
+      const jpegPath = filePath.replace(/\.hei[cf]$/i, ".jpg")
+      await sharp(filePath).jpeg({ quality: 85 }).toFile(jpegPath)
+      fs.unlinkSync(filePath)           // ลบ HEIC ต้นฉบับ
+      return jpegPath
+    }
+    return filePath
+  } catch (e) {
+    console.warn("convertIfNeeded skipped:", e.message)
+    return filePath                     // ถ้า convert ไม่ได้ ใช้ไฟล์เดิม
+  }
+}
 
 /* ============================================================
    MODELS
@@ -406,7 +440,8 @@ app.post("/api/book", requireLogin, uploadLimiter, upload.single("slip"), async 
         await session.abortTransaction()
         return res.status(400).json({ error: "กรุณาแนบสลิปการโอนเงิน" })
       }
-      slip = "/uploads/" + req.file.filename
+      const converted = await convertIfNeeded(req.file.path)
+      slip = "/uploads/" + path.basename(converted)
     }
 
     // Queue number = count of today's approved/pending bookings + 1
@@ -454,7 +489,8 @@ app.post("/api/topup", requireLogin, uploadLimiter, upload.single("slip"), async
       user: req.session.user.id,
       username: req.session.user.username,
       amount,
-      slip: "/uploads/" + req.file.filename,
+      const convertedTopup = await convertIfNeeded(req.file.path)
+    slip: "/uploads/" + path.basename(convertedTopup),
       status: "pending"
     })
 

@@ -364,7 +364,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 
       <div id="slipUploadArea">
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('slipFile').click()">
-          <input type="file" id="slipFile" accept="image/*" onchange="onSlipChange(this)">
+          <input type="file" id="slipFile" accept="image/*,.heic,.heif" onchange="onSlipChange(this)">
           <div class="upload-icon">📎</div>
           <div class="upload-text" id="uploadText">คลิกเพื่ออัปโหลดสลิปการโอนเงิน<br><span style="font-size:11px">JPG, PNG ขนาดไม่เกิน 10MB</span></div>
         </div>
@@ -443,7 +443,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 
     <label class="form-label">สลิปการโอนเงิน</label>
     <div class="upload-area" id="topupUploadArea" onclick="document.getElementById('topupFile').click()" style="margin-bottom:16px">
-      <input type="file" id="topupFile" accept="image/*" onchange="onTopupFileChange(this)">
+      <input type="file" id="topupFile" accept="image/*,.heic,.heif" onchange="onTopupFileChange(this)">
       <div class="upload-icon">📎</div>
       <div class="upload-text" id="topupUploadText">คลิกเพื่ออัปโหลดสลิป</div>
     </div>
