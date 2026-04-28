@@ -485,12 +485,13 @@ app.post("/api/topup", requireLogin, uploadLimiter, upload.single("slip"), async
     if (!req.file)
       return res.status(400).json({ error: "กรุณาแนบสลิปการโอนเงิน" })
 
+    const convertedTopup = await convertIfNeeded(req.file.path)
+
     await TopUp.create({
       user: req.session.user.id,
       username: req.session.user.username,
       amount,
-      const convertedTopup = await convertIfNeeded(req.file.path)
-    slip: "/uploads/" + path.basename(convertedTopup),
+      slip: "/uploads/" + path.basename(convertedTopup),
       status: "pending"
     })
 
