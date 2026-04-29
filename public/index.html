@@ -143,13 +143,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .upload-area{
   border:2px dashed var(--border);border-radius:10px;padding:30px;
   text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px;
-  position:relative;
 }
 .upload-area:hover{border-color:var(--gold)}
-.upload-area input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upload-area.has-file{border-color:var(--green);border-style:solid}
 .upload-icon{font-size:28px;margin-bottom:8px}
 .upload-text{color:var(--muted);font-size:13px}
+.upload-area label{cursor:pointer;display:block;width:100%}
+.upload-area input[type=file]{display:none}
 .note-input{
   width:100%;background:var(--surface);border:1px solid var(--border);
   border-radius:8px;padding:10px 14px;color:var(--text);font-family:inherit;
@@ -363,10 +363,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
       </div>
 
       <div id="slipUploadArea">
-        <div class="upload-area" id="uploadArea" onclick="document.getElementById('slipFile').click()">
-          <input type="file" id="slipFile" accept="image/*" onchange="onSlipChange(this)">
-          <div class="upload-icon">📎</div>
-          <div class="upload-text" id="uploadText">คลิกเพื่ออัปโหลดสลิปการโอนเงิน<br><span style="font-size:11px">JPG, PNG ขนาดไม่เกิน 10MB</span></div>
+        <div class="upload-area has-file-check" id="uploadArea">
+          <label for="slipFile">
+            <input type="file" id="slipFile" accept="image/*" onchange="onSlipChange(this)">
+            <div class="upload-icon">📎</div>
+            <div class="upload-text" id="uploadText">แตะที่นี่เพื่อเลือกรูปสลิป<br><span style="font-size:11px">รองรับ JPG, PNG, HEIC (iOS)</span></div>
+          </label>
         </div>
       </div>
 
@@ -442,10 +444,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
     <input class="form-input" type="number" id="topupAmount" placeholder="เช่น 500" min="50" max="50000">
 
     <label class="form-label">สลิปการโอนเงิน</label>
-    <div class="upload-area" id="topupUploadArea" onclick="document.getElementById('topupFile').click()" style="margin-bottom:16px">
-      <input type="file" id="topupFile" accept="image/*" onchange="onTopupFileChange(this)">
-      <div class="upload-icon">📎</div>
-      <div class="upload-text" id="topupUploadText">คลิกเพื่ออัปโหลดสลิป</div>
+    <div class="upload-area" id="topupUploadArea" style="margin-bottom:16px">
+      <label for="topupFile">
+        <input type="file" id="topupFile" accept="image/*" onchange="onTopupFileChange(this)">
+        <div class="upload-icon">📎</div>
+        <div class="upload-text" id="topupUploadText">แตะที่นี่เพื่อเลือกรูปสลิป</div>
+      </label>
     </div>
 
     <div class="modal-footer">
