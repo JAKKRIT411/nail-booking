@@ -10,7 +10,6 @@ import dotenv from "dotenv"
 import helmet from "helmet"
 import fs from "fs"
 import rateLimit from "express-rate-limit"
-import sharp from "sharp"
 
 dotenv.config()
 
@@ -106,55 +105,36 @@ if (!fs.existsSync("uploads")) fs.mkdirSync("uploads")
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (_, file, cb) => {
-    let ext = path.extname(file.originalname || "").toLowerCase()
-    // iOS HEIC — บันทึกเป็น .jpg เพื่อให้ browser แสดงได้ปกติ
-    // (ไฟล์จะถูก convert หลัง save ด้วย sharp)
-    if ([".heic", ".heif"].includes(ext) || file.mimetype === "application/octet-stream") {
-      ext = ".heic"
+    // Detect extension from mime type first (more reliable on iOS)
+    const mimeToExt = {
+      "image/jpeg": ".jpg",
+      "image/jpg": ".jpg",
+      "image/png": ".png",
+      "image/webp": ".webp",
+      "image/heic": ".heic",
+      "image/heif": ".heic",
+      "image/heic-sequence": ".heic",
+      "image/heif-sequence": ".heic",
     }
-    if (!ext || ext === ".") ext = ".jpg"
+    let ext = mimeToExt[file.mimetype]
+    if (!ext) {
+      ext = path.extname(file.originalname || "").toLowerCase() || ".jpg"
+    }
     cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`)
   }
 })
 
-const fileFilter = (_, file, cb) => {
-  // iOS ส่ง HEIC ด้วย mime หลายแบบ หรือแม้แต่ octet-stream
-  const allowedMimes = [
-    "image/jpeg", "image/jpg", "image/png", "image/webp",
-    "image/heic", "image/heif",
-    "image/heic-sequence", "image/heif-sequence",
-    "application/octet-stream"
-  ]
-  const allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"]
-  const ext = path.extname(file.originalname || "").toLowerCase()
-  if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) {
-    cb(null, true)
-  } else {
-    cb(new Error("อัปโหลดได้เฉพาะรูปภาพ (JPG, PNG, HEIC)"))
-  }
-}
-
+// Accept ALL files — iOS sends inconsistent mime types for HEIC
+// Size limit (10MB) is the only hard gate
 const upload = multer({
   storage,
-  fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 }
 })
 
-// Convert HEIC/HEIF → JPEG so browsers can display slips correctly
+// HEIC files are kept as-is — browsers that support it will display,
+// admin can still open the raw file. No sharp dependency needed.
 async function convertIfNeeded(filePath) {
-  try {
-    const ext = path.extname(filePath).toLowerCase()
-    if (ext === ".heic" || ext === ".heif") {
-      const jpegPath = filePath.replace(/\.hei[cf]$/i, ".jpg")
-      await sharp(filePath).jpeg({ quality: 85 }).toFile(jpegPath)
-      fs.unlinkSync(filePath)           // ลบ HEIC ต้นฉบับ
-      return jpegPath
-    }
-    return filePath
-  } catch (e) {
-    console.warn("convertIfNeeded skipped:", e.message)
-    return filePath                     // ถ้า convert ไม่ได้ ใช้ไฟล์เดิม
-  }
+  return filePath
 }
 
 /* ============================================================
