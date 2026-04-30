@@ -16,6 +16,40 @@ dotenv.config()
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+/* ============================================================
+   TELEGRAM NOTIFY
+============================================================ */
+async function tg(text, slipPath = null) {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
+
+  try {
+    if (slipPath) {
+      // slipPath เป็น "/uploads/xxx.jpg" — แปลงเป็น absolute path
+      const realPath = path.join(__dirname, slipPath.startsWith("/") ? slipPath.slice(1) : slipPath)
+      if (fs.existsSync(realPath)) {
+        const fileBuffer = fs.readFileSync(realPath)
+        const blob = new Blob([fileBuffer], { type: "image/jpeg" })
+        const form = new FormData()
+        form.append("chat_id", chatId)
+        form.append("caption", text)
+        form.append("parse_mode", "HTML")
+        form.append("photo", blob, path.basename(realPath))
+        await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, { method: "POST", body: form })
+        return
+      }
+    }
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" })
+    })
+  } catch (e) {
+    console.warn("Telegram notify failed:", e.message)
+  }
+}
+
 const app = express()
 
 /* ============================================================
@@ -380,18 +414,18 @@ app.post("/api/cancel-booking", requireLogin, async (req, res) => {
    BOOKING — with queue number
 ============================================================ */
 app.post("/api/book", requireLogin, uploadLimiter, upload.single("slip"), async (req, res) => {
-  const session = await mongoose.startSession()
-  session.startTransaction()
+  const dbTxn = await mongoose.startSession()
+  dbTxn.startTransaction()
   try {
     const { serviceId, slotId, paymentMethod, note } = req.body
     if (!serviceId || !slotId) {
-      await session.abortTransaction()
+      await dbTxn.abortTransaction()
       return res.status(400).json({ error: "กรุณาเลือกบริการและเวลา" })
     }
 
-    const service = await Service.findById(serviceId).session(session)
+    const service = await Service.findById(serviceId).session(dbTxn)
     if (!service) {
-      await session.abortTransaction()
+      await dbTxn.abortTransaction()
       return res.status(404).json({ error: "ไม่พบบริการ" })
     }
 
@@ -399,25 +433,25 @@ app.post("/api/book", requireLogin, uploadLimiter, upload.single("slip"), async 
     const slot = await Slot.findOneAndUpdate(
       { _id: slotId, status: "available" },
       { status: "booked" },
-      { new: true, session }
+      { new: true, session: dbTxn }
     )
     if (!slot) {
-      await session.abortTransaction()
+      await dbTxn.abortTransaction()
       return res.status(409).json({ error: "คิวนี้ถูกจองแล้ว กรุณาเลือกเวลาอื่น" })
     }
 
     // Wallet payment
     let slip = null
     if (paymentMethod === "wallet") {
-      const user = await User.findById(req.session.user.id).session(session)
+      const user = await User.findById(req.session.user.id).session(dbTxn)
       if (user.balance < service.price) {
-        await session.abortTransaction()
+        await dbTxn.abortTransaction()
         return res.status(400).json({ error: `ยอดเงินไม่เพียงพอ (มี ${user.balance}฿ ต้องการ ${service.price}฿)` })
       }
-      await User.findByIdAndUpdate(req.session.user.id, { $inc: { balance: -service.price } }, { session })
+      await User.findByIdAndUpdate(req.session.user.id, { $inc: { balance: -service.price } }, { session: dbTxn })
     } else {
       if (!req.file) {
-        await session.abortTransaction()
+        await dbTxn.abortTransaction()
         return res.status(400).json({ error: "กรุณาแนบสลิปการโอนเงิน" })
       }
       const converted = await convertIfNeeded(req.file.path)
@@ -428,7 +462,7 @@ app.post("/api/book", requireLogin, uploadLimiter, upload.single("slip"), async 
     const today = slot.date
     const qNum = await Booking.countDocuments({
       status: { $in: ["approved", "pending"] }
-    }).session(session) + 1
+    }).session(dbTxn) + 1
 
     const booking = await Booking.create([{
       user: req.session.user.id,
@@ -440,16 +474,41 @@ app.post("/api/book", requireLogin, uploadLimiter, upload.single("slip"), async 
       note: note || "",
       queueNumber: qNum,
       status: paymentMethod === "wallet" ? "approved" : "pending"
-    }], { session })
+    }], { session: dbTxn })
 
-    await session.commitTransaction()
+    await dbTxn.commitTransaction()
+
+    // Notify Telegram
+    if (paymentMethod !== "wallet") {
+      const msg = [
+        "🔔 <b>จองคิวใหม่ — รอตรวจสลิป</b>",
+        "",
+        `👤 ผู้ใช้: <b>${req.session.user.username}</b>`,
+        `💅 บริการ: <b>${service.name}</b> (${service.price.toLocaleString()}฿)`,
+        `📅 วันที่: <b>${slot.date}</b> ⏰ <b>${slot.time}</b>`,
+        `🔢 เลขคิว: <b>#${qNum}</b>`,
+        note ? `📝 หมายเหตุ: ${note}` : "",
+      ].filter(Boolean).join("\n")
+      tg(msg, slip).catch(() => {})
+    } else {
+      const msg = [
+        "✅ <b>จองคิวสำเร็จ (Wallet)</b>",
+        "",
+        `👤 ผู้ใช้: <b>${req.session.user.username}</b>`,
+        `💅 บริการ: <b>${service.name}</b> (${service.price.toLocaleString()}฿)`,
+        `📅 วันที่: <b>${slot.date}</b> ⏰ <b>${slot.time}</b>`,
+        `🔢 เลขคิว: <b>#${qNum}</b>`,
+      ].join("\n")
+      tg(msg).catch(() => {})
+    }
+
     res.json({ success: true, booking: booking[0]._id, queueNumber: qNum })
   } catch (e) {
-    await session.abortTransaction()
+    await dbTxn.abortTransaction()
     console.error("booking error:", e)
     res.status(500).json({ error: "เกิดข้อผิดพลาด กรุณาลองใหม่" })
   } finally {
-    session.endSession()
+    dbTxn.endSession()
   }
 })
 
@@ -474,6 +533,15 @@ app.post("/api/topup", requireLogin, uploadLimiter, upload.single("slip"), async
       slip: "/uploads/" + path.basename(convertedTopup),
       status: "pending"
     })
+
+    // Notify Telegram
+    const topupMsg = [
+      "💳 <b>เติมเงินใหม่ — รอตรวจสลิป</b>",
+      "",
+      `👤 ผู้ใช้: <b>${req.session.user.username}</b>`,
+      `💰 จำนวน: <b>${amount.toLocaleString()} บาท</b>`,
+    ].join("\n")
+    tg(topupMsg, "/uploads/" + path.basename(convertedTopup)).catch(() => {})
 
     res.json({ success: true })
   } catch (e) {
@@ -626,6 +694,28 @@ app.post("/admin/update-booking", requireAdmin, async (req, res) => {
     }
 
     await Booking.findByIdAndUpdate(id, { status, reason: reason || null })
+
+    // Notify Telegram
+    if (status === "approved") {
+      tg([
+        "✅ <b>อนุมัติการจองแล้ว</b>",
+        "",
+        `👤 ผู้ใช้: <b>${booking.username}</b>`,
+        `💅 บริการ: <b>${booking.service?.name || "-"}</b>`,
+        `🔢 เลขคิว: <b>#${booking.queueNumber}</b>`,
+        `📌 สถานะ: <b>อนุมัติแล้ว</b>`,
+      ].join("\n")).catch(() => {})
+    } else if (status === "rejected") {
+      tg([
+        "❌ <b>ไม่อนุมัติการจอง</b>",
+        "",
+        `👤 ผู้ใช้: <b>${booking.username}</b>`,
+        `💅 บริการ: <b>${booking.service?.name || "-"}</b>`,
+        `🔢 เลขคิว: <b>#${booking.queueNumber}</b>`,
+        reason ? `📝 เหตุผล: ${reason}` : "",
+      ].filter(Boolean).join("\n")).catch(() => {})
+    }
+
     res.json({ success: true })
   } catch (e) {
     res.status(500).json({ error: "เกิดข้อผิดพลาด" })
@@ -697,6 +787,16 @@ app.post("/admin/approve-topup", requireAdmin, async (req, res) => {
     await TopUp.findByIdAndUpdate(id, { status: "approved" }, { session: dbSession })
 
     await dbSession.commitTransaction()
+
+    // Notify Telegram
+    tg([
+      "✅ <b>อนุมัติการเติมเงินแล้ว</b>",
+      "",
+      `👤 ผู้ใช้: <b>${topup.username}</b>`,
+      `💰 จำนวน: <b>${topup.amount.toLocaleString()} บาท</b>`,
+      `📌 สถานะ: เติมเงินสำเร็จ`,
+    ].join("\n")).catch(() => {})
+
     res.json({ success: true })
   } catch (e) {
     await dbSession.abortTransaction()
